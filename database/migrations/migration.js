@@ -1,0 +1,36 @@
+import sequelize from "../../config/sequelize_app.js";
+
+import PropertyAmenities from "../models/PropertyAmenities.js";
+import UserChat from "../models/UserChat.js";
+import Favorite from "../models/Favorite.js";
+import Subscription from "../models/Subscription.js";
+import Report from "../models/Report.js";
+import Message from "../models/Message.js";
+import Booking from "../models/Booking.js";
+import Media from "../models/Media.js";
+import Announcement from "../models/Announcement.js";
+import Property from "../models/Property.js";
+import User from "../models/User.js";
+import City from "../models/City.js";
+import Department from "../models/Department.js";
+import Chat from "../models/Chat.js";
+import SubscriptionType from "../models/SubscriptionType.js";
+import SubscriptionStatus from "../models/SubscriptionStatus.js";
+import ReportStatus from "../models/ReportStatus.js";
+import MessageStatus from "../models/MessageStatus.js";
+import BookingStatus from "../models/BookingStatus.js";
+import AnnouncementType from "../models/AnnouncementType.js";
+import AnnouncementStatus from "../models/AnnouncementStatus.js";
+import MediaType from "../models/MediaType.js";
+import Amenity from "../models/Amenity.js";
+import PropertyType from "../models/PropertyType.js";
+import PropertyStatus from "../models/PropertyStatus.js";
+import UserStatus from "../models/UserStatus.js";
+import Role from "../models/Role.js";
+import Country from "../models/Country.js";
+
+import { setupAssociations } from "../models/associations.js";
+setupAssociations();
+await sequelize.sync({ alter: true });
+
+console.log('Database successfully updated!');
