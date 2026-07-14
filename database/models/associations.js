@@ -25,8 +25,17 @@ import MessageStatus from "./MessageStatus.js";
 import ReportStatus from "./ReportStatus.js";
 import Report from "./Report.js";
 import Country from "./Country.js";
+import OtpPurpose from "./OtpPurpose.js";
+import OTP from "./Otp.js";
 
 export function setupAssociations() {
+  // Add OTP relations
+  OtpPurpose.hasMany(OTP, { foreignKey: "otp_purpose_id" });
+  OTP.belongsTo(OtpPurpose, { foreignKey: "otp_purpose_id" });
+
+  User.hasMany(OTP, { foreignKey: "user_id" });
+  OTP.belongsTo(User, { foreignKey: "user_id" });
+
   // 0. Country <-> Department
   Country.hasMany(Department, { foreignKey: "country_id" });
   Department.belongsTo(Country, { foreignKey: "country_id" });

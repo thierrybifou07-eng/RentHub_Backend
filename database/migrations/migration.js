@@ -10,6 +10,7 @@ import Booking from "../models/Booking.js";
 import Media from "../models/Media.js";
 import Announcement from "../models/Announcement.js";
 import Property from "../models/Property.js";
+import OTP from "../models/Otp.js";
 import User from "../models/User.js";
 import City from "../models/City.js";
 import Department from "../models/Department.js";
@@ -28,7 +29,7 @@ import PropertyStatus from "../models/PropertyStatus.js";
 import UserStatus from "../models/UserStatus.js";
 import Role from "../models/Role.js";
 import Country from "../models/Country.js";
-
+import OtpPurpose from "../models/OtpPurpose.js";
 import { setupAssociations } from "../models/associations.js";
 setupAssociations();
 await sequelize.sync({ alter: true });
