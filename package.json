@@ -1,0 +1,25 @@
+{
+  "name": "renthub_backend",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "Gedeon Bifou",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "joi": "^18.2.3",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.22.5",
+    "nodemon": "^3.1.14",
+    "sequelize": "^6.37.8"
+  }
+}
