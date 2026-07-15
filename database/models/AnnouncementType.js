@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import sequelize from "../../config/sequelize_app.js";
+import sequelize from "../../src/config/sequelize_app.js";
 
 const AnnouncementType = sequelize.define("Announcement_type", {
   announcement_type_id: {

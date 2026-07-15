@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import sequelize from "../../config/sequelize_app.js";
+import sequelize from "../../src/config/sequelize_app.js";
 
 const MediaType = sequelize.define("Media_type", {
   media_type_id: {

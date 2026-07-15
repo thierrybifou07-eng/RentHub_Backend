@@ -1,4 +1,4 @@
-import sequelize from "../../config/sequelize_app.js";
+import sequelize from "../../src/config/sequelize_app.js";
 
 import PropertyAmenities from "../models/PropertyAmenities.js";
 import UserChat from "../models/UserChat.js";

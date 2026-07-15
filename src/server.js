@@ -1,12 +1,16 @@
 import express from "express";
-import '../config/env.js'
+import cors from "cors";
+import './config/env.js';
+import apiRouter from "./routes.js";
+
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 
-const port = process.env.PORT;
-app.use('/api/v1', )
-app.listen(port, () => {
-    console.log('Le serveur est ouvert sur le port http://localhost:' + port);
+app.use('/api/v1', apiRouter);
 
+const port = process.env.PORT;
+app.listen(port, () => {
+    console.log(`Le serveur est ouvert sur le port http://localhost:${port}`);
 });

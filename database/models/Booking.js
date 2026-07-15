@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import sequelize from "../../config/sequelize_app.js";
+import sequelize from "../../src/config/sequelize_app.js";
 import BookingStatus from "./BookingStatus.js";
 import User from "./User.js";
 import Property from "./Property.js";

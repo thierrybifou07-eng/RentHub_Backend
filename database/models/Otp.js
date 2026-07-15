@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import sequelize from "../../config/sequelize_app.js";
+import sequelize from "../../src/config/sequelize_app.js";
 import User from './User.js'
 import OtpPurpose from './OtpPurpose.js'
 const OTP = sequelize.define("OTP", {

@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import sequelize from "../../config/sequelize_app.js";
+import sequelize from "../../src/config/sequelize_app.js";
 import City from "./City.js";
 import Role from "./Role.js";
 import UserStatus from "./UserStatus.js";

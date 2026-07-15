@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import sequelize from "../../config/sequelize_app.js";
+import sequelize from "../../src/config/sequelize_app.js";
 import MediaType from "./MediaType.js";
 import Property from "./Property.js";
 import User from "./User.js";
