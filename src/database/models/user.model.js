@@ -1,5 +1,8 @@
 import { DataTypes } from "sequelize";
 import orm from "../../../config/sequelize_app.js";
+import City from "./city.model.js";
+import Role from "./role.model.js";
+import UserStatus from "./user-status.model.js";
 
 export const User = orm.define(
   "User",
@@ -29,14 +32,26 @@ export const User = orm.define(
     city_id: {
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: true,
+      reference: {
+        model: City,
+        key: "city_id"
+      }
     },
     role_id: {
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,
+      reference: {
+        model: Role,
+        key: "role_id"
+      }
     },
     user_status_id: {
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,
+      reference: {
+        model: UserStatus,
+        key: "user_status_id"
+      }
     },
     email: {
       type: DataTypes.STRING(255),
@@ -62,6 +77,7 @@ export const User = orm.define(
     email_verified_at: {
       type: DataTypes.DATE,
       allowNull: true,
+      defaultValue: null
     },
     last_login_at: {
       type: DataTypes.DATE,
@@ -79,12 +95,10 @@ export const User = orm.define(
       type: DataTypes.DATE,
       allowNull: true,
     },
-  },
-  {
-    tableName: "users",
-    timestamps: false,
-  }
-);
+  }, {
+  tableName: 'users',
+  timestamps: false
+});
 
 
 export default User;

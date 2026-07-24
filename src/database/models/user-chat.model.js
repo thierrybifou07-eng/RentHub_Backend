@@ -1,5 +1,6 @@
 import { DataTypes } from "sequelize";
 import orm from "../../../config/sequelize_app.js";
+import Chat from "./chat.model.js";
 
 export const UserChat = orm.define(
   "UserChat",
@@ -13,6 +14,10 @@ export const UserChat = orm.define(
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,
       primaryKey: true,
+      references:{
+        model: Chat,
+        key:'chat_id'
+      }
     },
     joined_at: {
       type: DataTypes.DATE,

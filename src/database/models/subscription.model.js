@@ -1,5 +1,8 @@
 import { DataTypes } from "sequelize";
 import orm from "../../../config/sequelize_app.js";
+import SubscriptionType from "./subscription-type.model.js";
+import SubscriptionStatus from "./subscription-status.model.js";
+import User from "./user.model.js";
 
 export const Subscription = orm.define(
   "Subscription",
@@ -13,14 +16,26 @@ export const Subscription = orm.define(
     subscription_type_id: {
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,
+      references: {
+        model: SubscriptionType,
+        key: 'subscription_type_id'
+      }
     },
     subscription_status_id: {
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,
+      references:{
+        model: SubscriptionStatus,
+        key:'subscription_status_id'
+      }
     },
     user_id: {
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,
+      references:{
+        model: User,
+        key:'user_id'
+      }
     },
     start_date: {
       type: DataTypes.DATEONLY,
