@@ -1,5 +1,5 @@
 import "../setupAssociations.js";
-import orm from "../../config/sequelize_app.js";
+import orm from "../../../config/sequelize_app.js";
 
 const runMigration = async () => {
   try {

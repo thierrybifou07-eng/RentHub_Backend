@@ -1,6 +1,5 @@
 import { Sequelize } from "sequelize";
 
-
 const orm = new Sequelize(
     "node_1_1_db",
     "node_1_1_db",

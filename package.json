@@ -10,9 +10,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "db:create": "node src/config/mysqlConnection.js",
-    "db:migrate": "node database/migrations/migration.js",
-    "db:auth": "node src/config/db_connect.js"
+    "db:create": "node config/database/mysqlConnection.js",
+    "db:migrate": "node src/database/migrations/migration.js",
+    "db:auth": "node config/database/test_link_db.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
