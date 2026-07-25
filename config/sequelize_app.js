@@ -1,12 +1,13 @@
 import { Sequelize } from "sequelize";
+import './env.js'
 
 const orm = new Sequelize(
-    "node_1_1_db",
-    "node_1_1_db",
-    "#+*node@237",
+    process.env.DB_NAME,
+    process.env.DB_USER,
+    process.env.DB_PASSWORD,
     {
-        host: "localhost",
-        dialect: "mysql"
+        host: process.env.DB_HOST,
+        dialect: process.env.DB_DIALECT
     }
 )
 

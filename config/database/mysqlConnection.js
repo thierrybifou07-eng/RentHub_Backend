@@ -1,11 +1,11 @@
 import mysql from "mysql2/promise";
-
+import '../env.js'
 const connection = await mysql.createConnection({
-    host: "localhost",
-    user: "node_1_1_db",
-    password: "#+*node@237",
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
 })
 
-await connection.query('CREATE DATABASE IF NOT EXISTS node_1_1_db')
+await connection.query('CREATE DATABASE IF NOT EXISTS rentHub')
 
-console.log("base de donnée node_1_1_db creée avec succès !!!")
+console.log("base de donnée rentHub creée avec succès !!!")

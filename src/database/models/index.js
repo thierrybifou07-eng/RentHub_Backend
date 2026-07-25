@@ -1,32 +1,15 @@
-import Amenity from "./amenity.model.js";
-import Announcement from "./announcement.model.js";
-import AnnouncementStatus from "./announcement-status.model.js";
-import AnnouncementType from "./announcement-type.model.js";
-import Booking from "./booking.model.js";
-import BookingStatus from "./booking-status.model.js";
-import Chat from "./chat.model.js";
-import City from "./city.model.js";
-import Country from "./country.model.js";
-import Department from "./department.model.js";
-import Favorite from "./favorite.model.js";
-import Media from "./media.model.js";
-import MediaType from "./media-type.model.js";
-import Message from "./message.model.js";
-import MessageStatus from "./message-status.model.js";
-import Property from "./property.model.js";
-import PropertyAmenity from "./property-amenity.model.js";
-import PropertyStatus from "./property-status.model.js";
-import PropertyType from "./property-type.model.js";
-import Report from "./report.model.js";
-import ReportStatus from "./report-status.model.js";
-import Role from "./role.model.js";
-import Subscription from "./subscription.model.js";
-import SubscriptionStatus from "./subscription-status.model.js";
-import SubscriptionType from "./subscription-type.model.js";
+
 import User from "./user.model.js";
-import UserChat from "./user-chat.model.js";
-import UserStatus from "./user-status.model.js";
 
-export { Amenity, Announcement, AnnouncementStatus, AnnouncementType, Booking, BookingStatus, Chat, City, Country, Department, Favorite, Media, MediaType, Message, MessageStatus, Property, PropertyAmenity, PropertyStatus, PropertyType, Report, ReportStatus, Role, Subscription, SubscriptionStatus, SubscriptionType, User, UserChat, UserStatus };
 
-export default { Amenity, Announcement, AnnouncementStatus, AnnouncementType, Booking, BookingStatus, Chat, City, Country, Department, Favorite, Media, MediaType, Message, MessageStatus, Property, PropertyAmenity, PropertyStatus, PropertyType, Report, ReportStatus, Role, Subscription, SubscriptionStatus, SubscriptionType, User, UserChat, UserStatus };
+export {
+
+    User,
+
+};
+
+export default {
+
+    User,
+
+};
