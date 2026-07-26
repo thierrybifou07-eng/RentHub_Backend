@@ -3,11 +3,12 @@ import orm from "../../../config/sequelize_app.js";
 import City from "./city.model.js";
 import Role from "./role.model.js";
 import UserStatus from "./user-status.model.js";
+import { hashPassword } from "../../modules/auth/password.js";
 
 export const User = orm.define(
   "User",
   {
-    user_id: {
+    id: {
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,
       primaryKey: true,
@@ -34,15 +35,16 @@ export const User = orm.define(
       allowNull: true,
       reference: {
         model: City,
-        key: "city_id"
+        key: "id"
       }
     },
     role_id: {
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,
+      defaultValue: 1,
       reference: {
         model: Role,
-        key: "role_id"
+        key: "id"
       }
     },
     user_status_id: {
@@ -50,7 +52,7 @@ export const User = orm.define(
       allowNull: false,
       reference: {
         model: UserStatus,
-        key: "user_status_id"
+        key: "id"
       }
     },
     email: {
@@ -58,13 +60,14 @@ export const User = orm.define(
       allowNull: false,
       unique: true,
     },
-    password_hash: {
+    password: {
       type: DataTypes.STRING(255),
       allowNull: false,
     },
     phone: {
       type: DataTypes.STRING(20),
       allowNull: true,
+      unique: true
     },
     address: {
       type: DataTypes.STRING(255),
@@ -79,17 +82,14 @@ export const User = orm.define(
       allowNull: true,
       defaultValue: null
     },
+    verified_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null
+    },
     last_login_at: {
       type: DataTypes.DATE,
       allowNull: true,
-    },
-    created_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-    },
-    updated_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
     },
     deleted_at: {
       type: DataTypes.DATE,
@@ -97,7 +97,39 @@ export const User = orm.define(
     },
   }, {
   tableName: 'users',
-  timestamps: false
+  timestamps: true,
+  defaultScope: {
+    attributes: {
+      exclude: ['password']
+    },
+  },
+  scopes: {
+    withPassword: { attributes: { include: ['password'] } },
+  },
+  hooks: {
+    beforeCreate: async (user, options) => {
+      user.password = await hashPassword(user.password)
+    },
+    beforeUpdate: async (user, options) => {
+      if (user && user.password && user.changed('password')) user.password = await hashPassword(user.password)
+    },
+    afterCreate(user, options) {
+      if (user && user.dataValues.password) delete user.dataValues.password
+    },
+    afterFind(result, options) {
+      if (!result) return;
+
+      // Gérer les résultats multiples (findAll) et uniques (findOne)
+      
+      const users = Array.isArray(result) ? result : [result]
+
+      users.forEach(user => {
+        if (user && user.dataValues) {
+          delete user.dataValues.file
+        }
+      });
+    }
+  }
 });
 
 

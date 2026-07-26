@@ -14,16 +14,16 @@ import { ROLES } from "../../../config/auth/app.js";
 const authRoutes = express.Router();
 
 const middleware = async (req, res, next) => {
-    console.log(req.headers, 'Access-Control-Allow-Origin//////');
+    console.log(req.headers, 'Access-Control-Allow-Origin');
     next()
 }
 
-authRoutes.post("/auth/register", register)
-authRoutes.post("/auth/login", login)
-authRoutes.post("/auth/forgot-password", forgotPassword)
-authRoutes.post("/auth/reset-password", resetPassword)
-authRoutes.post("/auth/verify-email", authenticate, verifyEmail)
-authRoutes.post("/auth/regenerate-code", authenticate, regenerateCode)
-authRoutes.get("/auth/me", authenticate, getCurrentUser)
+authRoutes.post("/register", register)
+authRoutes.post("/login", login)
+authRoutes.post("/forgot-password", forgotPassword)
+authRoutes.post("/reset-password", resetPassword)
+authRoutes.post("/verify-email", authenticate, verifyEmail)
+authRoutes.post("/regenerate-code", authenticate, regenerateCode)
+authRoutes.get("/me", authenticate, getCurrentUser)
 
 export default authRoutes;

@@ -1,4 +1,4 @@
-import UserModel from "../model/userModel.js";
+import UserModel, { Otp } from "../../database/models/index.js";
 
 export function getPlural(word) {
     // 🔹 Liste des pluriels irréguliers
@@ -58,8 +58,8 @@ export const generateVerificationCode = async (length = 6, expiredMilliSeconds =
     let code = generate(length), bool = true
 
     while (bool) {
-        const user = await UserModel.scope("withCode").findOne({ where: { code } })
-        if (user) code = generate(length)
+        const otp = await Otp.findOne({ where: { code } })
+        if (otp) code = generate(length)
         else bool = false
     }
 

@@ -1,10 +1,11 @@
 import { DataTypes } from "sequelize";
 import orm from "../../../config/sequelize_app.js";
+import Department from "./department.model.js";
 
 export const City = orm.define(
   "City",
   {
-    city_id: {
+    id: {
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,
       primaryKey: true,
@@ -13,8 +14,12 @@ export const City = orm.define(
     department_id: {
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,
+      references: {
+        model: Department,
+        key: 'id'
+      }
     },
-    city_name: {
+    name: {
       type: DataTypes.STRING(100),
       allowNull: false,
     },

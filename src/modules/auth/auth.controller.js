@@ -1,17 +1,34 @@
-import UserModel from "../../database/models/user.model.js";
+import { User, Otp } from "../../database/models/index.js";
 import { generateVerificationCode } from "../../shared/helpers/helpers.js";
 import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
 import { verifyPassword } from "./password.js";
 import { generateToken } from "./jwt.js";
+import OTP from '../../../config/auth/OTP_CODE.js'
 
 export const register = async (req, res) => {
+    
     try {
         const countMinutes = 5
         const { code, expiredAt } = await generateVerificationCode(6, 1000 * countMinutes * 60)
 
-        const body = { ...req.body, code, expiredAt };
+        const body = { ...req.body };
+        console.log('Body: ', req.body);
+        const user = await User.create(body);
+        console.log('User: ', user);
 
-        const user = await UserModel.create(body);
+        try {
+            const userId = await User.findOne({ where: { email } })
+            console.log('UserId: ', userId);
+
+            const otp = { code: code, expiredAt: expiredAt, user_id: userId.id, type: OTP.EMAIL_VERIFICATION }
+            console.log('OTP: ', otp);
+
+            await Otp.create(otp)
+
+        } catch (error) {
+            console.log(error);
+
+        }
 
         try {
             await sendTemplateEmail(
@@ -40,7 +57,7 @@ export const login = async (req, res) => {
     try {
         const { email, password } = req.body
 
-        const user = await UserModel.scope('withPassword').findOne({ where: { email } })
+        const user = await User.scope('withPassword').findOne({ where: { email } })
 
         if (!user) return res.status(400).json({ message: 'Invalid credentials' })
 
@@ -67,7 +84,7 @@ export const verifyEmail = async (req, res) => {
     try {
         const { code } = req.body
 
-        const user = await UserModel.scope('withCode').findByPk(req.user.id)
+        const user = await User.scope('withCode').findByPk(req.user.id)
 
         if (!user) return res.status(404).json({ message: 'User not found' })
 
@@ -88,7 +105,7 @@ export const verifyEmail = async (req, res) => {
 
 export const regenerateCode = async (req, res) => {
     try {
-        const user = await UserModel.scope('withCode').findByPk(req.user.id)
+        const user = await User.scope('withCode').findByPk(req.user.id)
 
         if (!user) return res.status(404).json({ message: 'User not found' })
 
@@ -126,7 +143,7 @@ export const regenerateCode = async (req, res) => {
 
 export const getCurrentUser = async (req, res) => {
     try {
-        const user = await UserModel.findByPk(req.user.id)
+        const user = await User.findByPk(req.user.id)
         if (!user) return res.status(404).json({ message: 'User not found' })
         return res.status(200).json(user)
     }

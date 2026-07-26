@@ -1,4 +1,4 @@
-export const OTP_TYPES = Object.freeze({
+const OTP_TYPES = Object.freeze({
     EMAIL_VERIFICATION: "EMAIL_VERIFICATION",
     PHONE_VERIFICATION: "PHONE_VERIFICATION",
     LOGIN: "LOGIN",
@@ -6,3 +6,4 @@ export const OTP_TYPES = Object.freeze({
     CHANGE_EMAIL: "CHANGE_EMAIL",
     CHANGE_PHONE: "CHANGE_PHONE",
 });
+export default OTP_TYPES

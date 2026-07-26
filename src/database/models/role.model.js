@@ -4,17 +4,17 @@ import orm from "../../../config/sequelize_app.js";
 export const Role = orm.define(
   "Role",
   {
-    role_id: {
+    id: {
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,
       primaryKey: true,
       autoIncrement: true,
     },
-    role_code: {
+    code: {
       type: DataTypes.STRING(50),
       allowNull: false,
     },
-    role_label: {
+    label: {
       type: DataTypes.STRING(50),
       allowNull: false,
     },
