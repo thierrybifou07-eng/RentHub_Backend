@@ -5,17 +5,17 @@ export const Otp = orm.define(
   "otp",
   {
     code: {
-      type: DataTypes.INTEGER(9),
-      primaryKey: true,
+      type: DataTypes.STRING(9),
       allowNull: false,
-      unique: true
     },
     type: {
       type: DataTypes.STRING(100),
-      allowNull: true,
+      primaryKey: true,
+      allowNull: false,
     },
     user_id: {
       type: DataTypes.BIGINT.UNSIGNED,
+      primaryKey: true,
       allowNull: false
     },
     expiredAt: {
@@ -25,12 +25,8 @@ export const Otp = orm.define(
   },
   {
     tableName: "otps",
-    timestamps: true,
-    indexes: [
-      { fields: ['user_id'] }
-    ]
+    timestamps: true
   }
 );
-
 
 export default Otp;

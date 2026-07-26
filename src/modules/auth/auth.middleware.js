@@ -1,3 +1,4 @@
+import { forbidden } from "../../shared/helpers/response.helpers.js"
 import { verifyToken } from "./jwt.js"
 
 function getRequestToken(req) {
@@ -15,7 +16,7 @@ function getRequestToken(req) {
 export async function authenticate(req, res, next) {
     const token = getRequestToken(req)
 
-    if (!token) return res.status(401).json('access denied')
+    if (!token) return res.status(401).json(forbidden())
 
     try {
         req.user = verifyToken(token)

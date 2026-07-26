@@ -46,7 +46,7 @@ export function getPlural(word) {
     return word + "s";
 }
 
-export function generate(length) {
+/* export function generate(length) {
     let code = ""
     for (let i = 0; i < length; i++) {
         code += Math.floor(Math.random() * 10) // Génère un chiffre entre 0 et 9
@@ -66,7 +66,7 @@ export const generateVerificationCode = async (length = 6, expiredMilliSeconds =
     const expiredAt = new Date(Date.now() + expiredMilliSeconds)
 
     return { code, expiredAt }
-}
+} */
 
 export const isCodeValid = (code, user) => {
     if (user.code !== code || !user.expiredAt) return false
