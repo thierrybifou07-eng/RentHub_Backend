@@ -1,6 +1,5 @@
 import { DataTypes } from "sequelize";
 import orm from "../../../config/sequelize_app.js";
-import Country from "./country.model.js";
 
 export const Department = orm.define(
   "Department",
@@ -13,11 +12,7 @@ export const Department = orm.define(
     },
     country_id: {
       type: DataTypes.BIGINT.UNSIGNED,
-      allowNull: false,
-      references: {
-        model: Country,
-        key: 'id'
-      }
+      allowNull: false
     },
     name: {
       type: DataTypes.STRING(100),
@@ -31,6 +26,9 @@ export const Department = orm.define(
   {
     tableName: "departments",
     timestamps: false,
+    indexes: [
+      { fields: ['country_id'] }
+    ]
   }
 );
 

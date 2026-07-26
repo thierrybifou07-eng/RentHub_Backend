@@ -4,24 +4,24 @@ import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
 import { verifyPassword } from "./password.js";
 import { generateToken } from "./jwt.js";
 import OTP from '../../../config/auth/OTP_CODE.js'
+import USER_STATUS from "./userStatus.js";
 
 export const register = async (req, res) => {
-    
+
     try {
+        const body = { ...req.body, user_status_id: USER_STATUS.ACTIVE };
+
+        const user = await User.create(body);
+
         const countMinutes = 5
         const { code, expiredAt } = await generateVerificationCode(6, 1000 * countMinutes * 60)
 
-        const body = { ...req.body };
-        console.log('Body: ', req.body);
-        const user = await User.create(body);
-        console.log('User: ', user);
-
         try {
-            const userId = await User.findOne({ where: { email } })
-            console.log('UserId: ', userId);
 
-            const otp = { code: code, expiredAt: expiredAt, user_id: userId.id, type: OTP.EMAIL_VERIFICATION }
-            console.log('OTP: ', otp);
+            const userId = await User.scope('onlyId').findOne({ where: { email: req.body.email } })
+
+            const otp = { code, expiredAt, user_id: userId.id, type: OTP.EMAIL_VERIFICATION }
+
 
             await Otp.create(otp)
 

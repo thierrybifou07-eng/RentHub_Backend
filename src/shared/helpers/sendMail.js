@@ -4,7 +4,7 @@ import juice from 'juice'
 import { readFile } from 'fs/promises'
 import { existsSync } from "node:fs"
 import transport from "../../../config/email/transport.js";
-
+import '../../../config/env.js'
 
 async function getHtmlContent(template, props = {}) {
     const basePath = `views/emails/${template}/email.`
@@ -23,7 +23,7 @@ async function getHtmlContent(template, props = {}) {
 export const sendTemplateEmail = async (to, subject, template, props = {}) => {
     const html = await getHtmlContent(template, props)
     const mailOptions = {
-        from: '"RentHub" <no-reply@renthub .com>',
+        from: process.env.EMAIL_SENDER,
         to,
         subject,
         html // Utiliser le contenu HTML rendu
@@ -34,7 +34,7 @@ export const sendTemplateEmail = async (to, subject, template, props = {}) => {
 
 export const sendEmail = async (userEmail, subject, message) => {
     const mailOptions = {
-        from: '"RentHub" <no-reply@renthub .com>',
+        from: process.env.EMAIL_SENDER,
         to: userEmail,
         subject: subject,
         text: message

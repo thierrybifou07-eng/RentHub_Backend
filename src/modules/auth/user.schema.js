@@ -1,9 +1,8 @@
 import joi from 'joi'
-import Joi from "joi"
 import { ROLES } from "../../../config/auth/app.js";
 import { generateCodeRegex } from "../../shared/helpers/helpers.js";
 
-const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])(?!.*(.)\1\1\1)[A-Za-z\d@$!%*?&]{8,}$/
 export const userDefaultSchema = joi.object().keys(
     {
         id: Joi.number().integer().optional(),
@@ -74,7 +73,7 @@ export const createUserSchema = joi.object().keys(
             is: Joi.exist(),
             then: Joi.optional(),
             otherwise: Joi.required()
-        }),
+        })/* ,
         roles: Joi.array().items(Joi.string().valid(...Object.values(ROLES))).min(1).required().messages({
             'array.base': 'Roles must be an array',
             'array.includesSingle': 'Roles must contain only valid role names',
@@ -83,7 +82,7 @@ export const createUserSchema = joi.object().keys(
             'string.empty': 'Role names cannot be empty',
             'string.base': 'Role names must be strings',
             'any.only': 'Roles must contain only valid role names'
-        })
+        }) */
     }).options({ stripUnknown: true })
 
 export const loginSchema = joi.object().keys(

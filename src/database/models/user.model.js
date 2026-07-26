@@ -1,8 +1,5 @@
 import { DataTypes } from "sequelize";
 import orm from "../../../config/sequelize_app.js";
-import City from "./city.model.js";
-import Role from "./role.model.js";
-import UserStatus from "./user-status.model.js";
 import { hashPassword } from "../../modules/auth/password.js";
 
 export const User = orm.define(
@@ -33,27 +30,15 @@ export const User = orm.define(
     city_id: {
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: true,
-      reference: {
-        model: City,
-        key: "id"
-      }
     },
     role_id: {
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,
       defaultValue: 1,
-      reference: {
-        model: Role,
-        key: "id"
-      }
     },
     user_status_id: {
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,
-      reference: {
-        model: UserStatus,
-        key: "id"
-      }
     },
     email: {
       type: DataTypes.STRING(255),
@@ -98,14 +83,22 @@ export const User = orm.define(
   }, {
   tableName: 'users',
   timestamps: true,
+  paranoid: true,
+  deletedAt: 'deleted_at',
   defaultScope: {
     attributes: {
-      exclude: ['password']
+      exclude: ['password', 'createdAt', 'updatedAt', 'deleted_at']
     },
   },
   scopes: {
     withPassword: { attributes: { include: ['password'] } },
+    onlyId: { attributes: ['id'] }
   },
+  indexes: [
+    { fields: ['role_id'] },
+    { fields: ['city_id'] },
+    { fields: ['user_status_id'] },
+  ],
   hooks: {
     beforeCreate: async (user, options) => {
       user.password = await hashPassword(user.password)
@@ -113,22 +106,19 @@ export const User = orm.define(
     beforeUpdate: async (user, options) => {
       if (user && user.password && user.changed('password')) user.password = await hashPassword(user.password)
     },
+    beforeBulkCreate: async (users, options) => {
+      for (const user of users) {
+        if (user.password) user.password = await hashPassword(user.password)
+      }
+    },
+    beforeBulkUpdate: async (options) => {
+      if (options.attributes && options.attributes.password) {
+        options.attributes.password = await hashPassword(options.attributes.password)
+      }
+    },
     afterCreate(user, options) {
       if (user && user.dataValues.password) delete user.dataValues.password
     },
-    afterFind(result, options) {
-      if (!result) return;
-
-      // Gérer les résultats multiples (findAll) et uniques (findOne)
-      
-      const users = Array.isArray(result) ? result : [result]
-
-      users.forEach(user => {
-        if (user && user.dataValues) {
-          delete user.dataValues.file
-        }
-      });
-    }
   }
 });
 

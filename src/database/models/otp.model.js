@@ -1,6 +1,5 @@
 import { DataTypes } from "sequelize";
 import orm from "../../../config/sequelize_app.js";
-import User from "./user.model.js";
 
 export const Otp = orm.define(
   "otp",
@@ -17,12 +16,7 @@ export const Otp = orm.define(
     },
     user_id: {
       type: DataTypes.BIGINT.UNSIGNED,
-      allowNull: false,
-      references: {
-        model: User,
-        key: 'id'
-      }
-
+      allowNull: false
     },
     expiredAt: {
       type: DataTypes.DATE,
@@ -32,6 +26,9 @@ export const Otp = orm.define(
   {
     tableName: "otps",
     timestamps: true,
+    indexes: [
+      { fields: ['user_id'] }
+    ]
   }
 );
 

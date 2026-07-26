@@ -10,7 +10,7 @@ import {
 } from "./auth.controller.js";
 import { authenticate, isGrantedAccess } from "./auth.middleware.js";
 import { ROLES } from "../../../config/auth/app.js";
-
+import validate from "../../shared/middlewares/validate.js";
 const authRoutes = express.Router();
 
 const middleware = async (req, res, next) => {
