@@ -6,7 +6,7 @@ const secret = process.env.JWT_SECRET
  * @returns {string}
  * */
 export function generateToken(user) {
-    return jwt.sign(user, secret, { expiresIn: '1h' })
+    return jwt.sign(user, secret, { expiresIn: process.env.JWT_EXPIRES_IN })
 }
 
 export function verifyToken(token) {

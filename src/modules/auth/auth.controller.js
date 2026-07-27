@@ -3,7 +3,7 @@ import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
 import { verifyPassword } from "./password.js";
 import OTP from '../../../config/auth/OTP_CODE.js'
 import USER_STATUS from "./userStatus.js";
-import { conflict, error, fail, notFound, registered, verified } from "../../shared/helpers/response.helpers.js";
+import { conflict, error, fail, forbidden, notFound, registered, verified } from "../../shared/helpers/response.helpers.js";
 import { generateToken } from "./jwt.js";
 import OTP_TYPES from "../../../config/auth/OTP_CODE.js";
 import { Op } from "sequelize";
@@ -26,8 +26,6 @@ export const register = async (req, res) => {
         const body = { ...req.body, user_status_id: USER_STATUS.ACTIVE };
 
         const user = await User.create(body);
-
-
 
         try {
             const countMinutes = 5
@@ -64,8 +62,6 @@ export const register = async (req, res) => {
 
         }
 
-
-
         return res.status(201).json(registered());
     }
     catch (error) {
@@ -85,7 +81,7 @@ export const login = async (req, res) => {
 
         if (!passwordMatch) return res.status(400).json(fail('Invalid credentials'))
 
-        const token = generateToken({ id: user.id, email, phone: user.phone, role: user.role_id, userStatus: user.user_status_id, emailChecked: user.email_verified_at })
+        const token = generateToken({ id: user.id, email, phone: user.phone, role: user.role_id, userStatus: user.user_status_id })
 
         user.set({ last_login_at: new Date() })
         user.save()
@@ -105,24 +101,34 @@ export const resetPassword = async (req, res) => { }
 
 export const verifyEmail = async (req, res) => {
     try {
-        const { code, email } = req.body
+        const { exp, iat, ...payload } = req.user;
+
+        const { id, email, emailVerifyAt = null } = payload;
+
+        const { code } = req.body
+
+        if (emailVerifyAt != null) return res.status(400).json(fail('You have already verified your Email'))
 
         const user = await User.findOne({ where: { email } })
 
         if (!user) return res.status(404).json(notFound('User not found'))
 
+        if (id != user.id) return res.status(403).json(forbidden('Invalid token'))
+
         if (user.email_verified_at !== null) return res.status(400).json(fail('You have already verified your Email'))
 
         const userCode = await Otp.findOne({ where: { user_id: user.id, type: OTP_TYPES.EMAIL_VERIFICATION } })
-
+        if (!userCode) return res.status(404).json({ ...notFound(), error: 'Please regenerate a new code' })
         if (code != userCode.code) return res.status(400).json(fail('Invalid code'))
 
         if (userCode.expiredAt < (new Date())) return res.status(400).json(fail('Expired code'))
 
         //This function from claude is used to delete the Otp after change the email verification status of the user in the DB, and it avoid error of order of the execution of the script.
+        const verifiedTime = new Date();
+
         await orm.transaction(async (params) => {
             await User.update(
-                { email_verified_at: new Date() },
+                { email_verified_at: verifiedTime },
                 { where: { id: user.id }, transaction: params }
             );
             await Otp.destroy({
@@ -130,6 +136,10 @@ export const verifyEmail = async (req, res) => {
                 transaction: params,
             });
         });
+
+        const updatedUser = await User.findOne({ where: { email } })
+
+        const token = generateToken({ ...payload, emailVerifyAt: verifiedTime })
         try {
             await sendTemplateEmail(
                 user.email,
@@ -143,7 +153,7 @@ export const verifyEmail = async (req, res) => {
         catch (e) {
             console.log(e.message)
         }
-        return res.status(200).json(verified())
+        return res.status(200).json(verified(token))
     }
     catch (e) {
         return res.status(500).json({ message: e.message ?? 'An error occurred' })

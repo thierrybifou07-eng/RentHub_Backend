@@ -134,9 +134,9 @@ export const loginSchema = Joi.object({
 
 
 export const sendCodeResetSchema = Joi.object({
-    email: Joi.string().email().required().messages({
-        "string.empty": "Email is required",
-        "string.email": "Email must be a valid email address",
+    email: Joi.string().min(6).max(6).required().messages({
+        "string.empty": "Code is required",
+        "string.email": "Code must be a valid code",
     }),
 }).options({ stripUnknown: true });
 
@@ -161,10 +161,6 @@ export const resetPasswordSchema = (length = 6) =>
 
 export const validatedCodeSchema = (length = 6) =>
     Joi.object({
-        email: Joi.string().email().required().messages({
-            "string.empty": "Email is required",
-            "string.email": "Email must be a valid email address",
-        }),
         code: Joi.string().regex(generateCodeRegex(length)).required().messages({
             "string.empty": "Code is required",
             "string.pattern.base": `Code must be ${length} characters long`,
