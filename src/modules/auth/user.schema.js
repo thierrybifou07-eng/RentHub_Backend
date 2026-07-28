@@ -166,3 +166,11 @@ export const validatedCodeSchema = (length = 6) =>
             "string.pattern.base": `Code must be ${length} characters long`,
         }),
     }).options({ stripUnknown: true });
+
+export const validatedEmailSchema =
+    Joi.object({
+        email: Joi.string().email().required().messages({
+            "string.empty": "Email is required",
+            "string.email": "Email must be a valid email address",
+        }),
+    }).options({ stripUnknown: true });

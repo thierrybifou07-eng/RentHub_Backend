@@ -14,7 +14,7 @@
     "db:migrate": "node src/database/migrations/migration.js",
     "db:auth": "node config/database/test_link_db.js",
     "db:seed": "node src/database/seeders/index.js",
-    "test_mail": "node config/testSendMail.js",
+    "test_mail": "node config/email/testSendMail.js",
     "generate_secret:dev": "node config/auth/generate_secret.js dev",
     "generate_secret:prod": "node config/auth/generate_secret.js prod"
   },

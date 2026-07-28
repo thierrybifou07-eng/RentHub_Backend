@@ -3,7 +3,7 @@ import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
 import { verifyPassword } from "./password.js";
 import OTP from '../../../config/auth/OTP_CODE.js'
 import USER_STATUS from "./userStatus.js";
-import { conflict, error, fail, forbidden, notFound, registered, verified } from "../../shared/helpers/response.helpers.js";
+import { badRequest, conflict, error, fail, forbidden, notFound, registered, success, validationFail, verified } from "../../shared/helpers/response.helpers.js";
 import { generateToken } from "./jwt.js";
 import OTP_TYPES from "../../../config/auth/OTP_CODE.js";
 import { Op } from "sequelize";
@@ -23,7 +23,7 @@ export const register = async (req, res) => {
             if (checkExistingUser.phone === req.body.phone) return res.status(409).json(conflict('That phone number is already taken'));
         }
 
-        const body = { ...req.body, user_status_id: USER_STATUS.ACTIVE };
+        const body = { ...req.body, user_status_id: USER_STATUS.INACTIVE };
 
         const user = await User.create(body);
 
@@ -95,9 +95,102 @@ export const login = async (req, res) => {
 
 export const logout = async (req, res) => { }
 
-export const forgotPassword = async (req, res) => { }
+export const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body
 
-export const resetPassword = async (req, res) => { }
+        const user = await User.scope('onlyId').findOne({ where: { email } })
+
+        if (!user) return res.status(400).json(fail('Invalid credentials'))
+        try {
+            const userOtp = await Otp.findOne({ where: { user_id: user.id, type: OTP_TYPES.PASSWORD_RESET } })
+
+            if (userOtp && userOtp.expiredAt > new Date()) return res.status(400).json(conflict('The last code is still valid'))
+
+            const countMinutes = 5
+
+            const { code, expiredAt } = await generateVerificationCode(6, 1000 * countMinutes * 60)
+
+            await Otp.upsert({ code, expiredAt, type: OTP_TYPES.PASSWORD_RESET, user_id: user.id })
+
+            /*         await user.save()
+             */
+            try {
+                await sendTemplateEmail(
+                    email,
+                    'Réinitialisation du Mot de Passe',
+                    'resetPassword',
+                    {
+                        countMinutes,
+                        resetCode: code
+                    }
+                )
+            }
+            catch (e) {
+                console.log(e.message)
+            }
+
+            return res.status(200).json(success())
+        }
+        catch (e) {
+            return res.status(500).json({ message: e.message ?? 'An error occurred' })
+        }
+
+    }
+    catch (e) {
+        return res.status(500).json(error())
+    }
+}
+
+export const resetPassword = async (req, res) => {
+    const { email, code, password } = req.body
+
+    try {
+        const user = await User.findOne({
+            where: { email: email }
+        })
+        if (!user) return res.status(404).json(notFound('User not found'))
+
+        const userOtp = await Otp.findOne({ where: { user_id: user.id, type: OTP_TYPES.PASSWORD_RESET } })
+
+        if (!userOtp) return res.status(400).json(badRequest())
+
+        if (userOtp.code != code) return res.status(400).json(validationFail())
+
+        if (userOtp && userOtp.expiredAt < new Date()) return res.status(400).json(fail('Your code expired please restart the process'))
+
+        /*         user.set({ password })
+        
+                user.save() */
+
+        await orm.transaction(async (params) => {
+            await User.update(
+                { password },
+                { where: { id: user.id }, transaction: params }
+            );
+            await Otp.destroy({
+                where: { user_id: user.id, type: OTP_TYPES.PASSWORD_RESET },
+                transaction: params,
+            });
+        });
+
+        try {
+            await sendTemplateEmail(
+                email,
+                'Mot de Passe Réinitialisé',
+                'resetPasswordSuccess'
+            )
+        }
+        catch (e) {
+            console.log(e.message)
+        }
+        return res.status(201).json(success());
+    }
+    catch (error) {
+        return res.status(500).json({ message: error.message ?? 'An error occurred' })
+    }
+
+}
 
 export const verifyEmail = async (req, res) => {
     try {
@@ -128,7 +221,7 @@ export const verifyEmail = async (req, res) => {
 
         await orm.transaction(async (params) => {
             await User.update(
-                { email_verified_at: verifiedTime },
+                { email_verified_at: verifiedTime, user_status_id: USER_STATUS.ACTIVE },
                 { where: { id: user.id }, transaction: params }
             );
             await Otp.destroy({
@@ -136,8 +229,6 @@ export const verifyEmail = async (req, res) => {
                 transaction: params,
             });
         });
-
-        const updatedUser = await User.findOne({ where: { email } })
 
         const token = generateToken({ ...payload, emailVerifyAt: verifiedTime })
         try {
@@ -182,10 +273,9 @@ export const regenerateCode = async (req, res) => {
         try {
             await sendTemplateEmail(
                 user.email,
-                'Inscription réussie',
-                'welcome',
+                'Demande de nouveau code',
+                'regenerateCode',
                 {
-                    username: `${user.lastname} ${user.firstname}`,
                     validatedCode: code,
                     countMinutes
                 }

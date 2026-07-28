@@ -1,10 +1,11 @@
 import { sendTemplateEmail } from "../../src/shared/helpers/sendMail.js";
 import { generateVerificationCode } from "../../src/shared/helpers/helpers.js";
 
-/*await sendTemplateEmail('contact@gmail.com', 'juste pour le test', 'welcome', {
-    username: 'Arnaud paul',
-    validatedCode: '241580'
-})*/
+await sendTemplateEmail('contact@gmail.com', '👨🏾‍💻Maildev, test de connetion📈', 'welcome', {
+    username: 'Mugiwarano Dev',
+    validatedCode: '241580',
+    countMinutes: 5
+})
 
 const { code, expiredAt } = generateVerificationCode(6, 1000 * 5 * 60)
 

@@ -11,7 +11,7 @@ import {
 import { authenticate, isGrantedAccess } from "./auth.middleware.js";
 import { ROLES } from "../../../config/auth/app.js";
 import validate from "../../shared/middlewares/validate.js";
-import { loginSchema, registerSchema, validatedCodeSchema } from "./user.schema.js";
+import { loginSchema, registerSchema, resetPasswordSchema, validatedCodeSchema, validatedEmailSchema } from "./user.schema.js";
 const authRoutes = express.Router();
 
 const middleware = async (req, res, next) => {
@@ -21,8 +21,8 @@ const middleware = async (req, res, next) => {
 
 authRoutes.post("/register", validate(registerSchema), register)
 authRoutes.post("/login", validate(loginSchema), login)
-authRoutes.post("/forgot-password", forgotPassword)
-authRoutes.post("/reset-password", resetPassword)
+authRoutes.post("/forgot-password", validate(validatedEmailSchema), forgotPassword)
+authRoutes.post("/reset-password", validate(resetPasswordSchema()), resetPassword)
 authRoutes.post("/verify-email", authenticate, validate(validatedCodeSchema()), verifyEmail)
 authRoutes.post("/regenerate-code", authenticate, regenerateCode)
 authRoutes.get("/me", authenticate, getCurrentUser)
