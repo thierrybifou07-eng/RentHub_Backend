@@ -5,12 +5,16 @@ import "../config/env.js";
 import apiRouter from "./routes.js";
 import { corsOptions } from "../config/corsOptions.js";
 import { loginLimiter, forgotPasswordLimiter, registerLimiter } from "../config/rateLimiter.js";
+import { handleWebhook } from "./modules/subscriptions/stripe.webhook.js";
 import "./database/setupAssociations.js";
 
 const app = express();
 
 app.use(cors(corsOptions));
 app.use(cookieParser());
+
+app.post("/api/v1/stripe/webhook", express.raw({ type: "application/json" }), handleWebhook);
+
 app.use(express.json());
 
 app.use("/api/v1/auth/login", loginLimiter);

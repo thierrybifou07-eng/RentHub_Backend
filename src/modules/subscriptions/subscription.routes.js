@@ -18,6 +18,11 @@ import {
     subscriptionFilterSchema,
     adminNoteSchema,
 } from "./subscription.schema.js";
+import {
+    createPaymentIntentSchema,
+    confirmPaymentSchema,
+} from "./stripe.schema.js";
+import { createPaymentIntent, confirmPayment } from "./stripe.controller.js";
 
 const router = Router();
 
@@ -29,5 +34,7 @@ router.get("/admin", authenticate, isAdmin, validate(subscriptionFilterSchema, "
 router.get("/admin/:id", authenticate, isAdmin, parseIdParam, getSubscriptionById);
 router.patch("/admin/:id/activate", authenticate, isAdmin, parseIdParam, validate(adminNoteSchema), activateSubscription);
 router.patch("/admin/:id/reject", authenticate, isAdmin, parseIdParam, validate(adminNoteSchema), rejectSubscription);
+router.post("/create-payment-intent", authenticate, validate(createPaymentIntentSchema), createPaymentIntent);
+router.post("/confirm-payment", authenticate, validate(confirmPaymentSchema), confirmPayment);
 
 export default router;
