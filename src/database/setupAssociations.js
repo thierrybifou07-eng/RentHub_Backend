@@ -7,6 +7,10 @@ import {
   Otp,
   UserStatus,
   Session,
+  PropertyType,
+  AnnouncementStatus,
+  Announcement,
+  AnnouncementImage,
 } from "./models/index.js";
 
 const setupAssociations = () => {
@@ -30,6 +34,21 @@ const setupAssociations = () => {
 
   User.hasMany(Otp, { foreignKey: "user_id" });
   Otp.belongsTo(User, { foreignKey: "user_id" });
+
+  PropertyType.hasMany(Announcement, { foreignKey: "property_type_id" });
+  Announcement.belongsTo(PropertyType, { foreignKey: "property_type_id" });
+
+  AnnouncementStatus.hasMany(Announcement, { foreignKey: "status_id" });
+  Announcement.belongsTo(AnnouncementStatus, { foreignKey: "status_id" });
+
+  City.hasMany(Announcement, { foreignKey: "city_id" });
+  Announcement.belongsTo(City, { foreignKey: "city_id" });
+
+  User.hasMany(Announcement, { foreignKey: "user_id" });
+  Announcement.belongsTo(User, { foreignKey: "user_id" });
+
+  Announcement.hasMany(AnnouncementImage, { foreignKey: "announcement_id", onDelete: "CASCADE" });
+  AnnouncementImage.belongsTo(Announcement, { foreignKey: "announcement_id" });
 
 };
 

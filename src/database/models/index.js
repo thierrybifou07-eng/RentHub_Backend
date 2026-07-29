@@ -6,6 +6,10 @@ import User from "./user.model.js";
 import Session from "./session.model.js";
 import Otp from "./otp.model.js";
 import UserStatus from "./user-status.model.js";
+import PropertyType from "./property-type.model.js";
+import AnnouncementStatus from "./announcement-status.model.js";
+import Announcement from "./announcement.model.js";
+import AnnouncementImage from "./announcement-image.model.js";
 
 export {
     City,
@@ -15,11 +19,14 @@ export {
     Otp,
     Session,
     User,
-    UserStatus
+    UserStatus,
+    PropertyType,
+    AnnouncementStatus,
+    Announcement,
+    AnnouncementImage,
 };
 
 export default {
-
     City,
     Country,
     Department,
@@ -27,5 +34,9 @@ export default {
     Otp,
     Session,
     User,
-    UserStatus
+    UserStatus,
+    PropertyType,
+    AnnouncementStatus,
+    Announcement,
+    AnnouncementImage,
 };

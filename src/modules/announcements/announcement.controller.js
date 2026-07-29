@@ -1,0 +1,326 @@
+import { Op } from "sequelize";
+import { Announcement, AnnouncementImage, City, PropertyType } from "../../database/models/index.js";
+import ANNOUNCEMENT_STATUS from "./announcementStatus.js";
+import { verifyToken } from "../auth/jwt.js";
+import {
+    success,
+    created,
+    updated,
+    deleted,
+    notFound,
+    forbidden,
+    paginated,
+} from "../../shared/helpers/response.helpers.js";
+
+const handleServerError = (res, err) => {
+    console.error(err);
+    return res
+        .status(500)
+        .json({ status: "error", message: process.env.NODE_ENV === "production" ? "Internal server error" : err.message });
+};
+
+const announcementsInclude = [
+    { model: City, as: "City", attributes: ["id", "name"] },
+    { model: PropertyType, as: "PropertyType", attributes: ["id", "code", "label"] },
+    {
+        model: AnnouncementImage,
+        as: "AnnouncementImages",
+        attributes: ["id", "url", "is_primary"],
+    },
+];
+
+export const getAll = async (req, res) => {
+    try {
+        const { minPrice, maxPrice, property_type_id, city_id, furnished, minRooms, maxRooms, page, limit, sort } = req.query;
+
+        const where = { status_id: ANNOUNCEMENT_STATUS.ACTIVE };
+
+        if (minPrice || maxPrice) {
+            where.price = {};
+            if (minPrice) where.price[Op.gte] = minPrice;
+            if (maxPrice) where.price[Op.lte] = maxPrice;
+        }
+        if (property_type_id) where.property_type_id = property_type_id;
+        if (city_id) where.city_id = city_id;
+        if (furnished !== undefined) where.furnished = furnished === "true" || furnished === true;
+        if (minRooms || maxRooms) {
+            where.rooms = {};
+            if (minRooms) where.rooms[Op.gte] = minRooms;
+            if (maxRooms) where.rooms[Op.lte] = maxRooms;
+        }
+
+        let order;
+        switch (sort) {
+            case "price_asc": order = [["price", "ASC"]]; break;
+            case "price_desc": order = [["price", "DESC"]]; break;
+            case "oldest": order = [["createdAt", "ASC"]]; break;
+            case "newest":
+            default: order = [["createdAt", "DESC"]]; break;
+        }
+
+        const offset = (page - 1) * limit;
+
+        const { count, rows } = await Announcement.findAndCountAll({
+            where,
+            include: announcementsInclude,
+            order,
+            limit: Number(limit),
+            offset: Number(offset),
+            distinct: true,
+        });
+
+        return res.status(200).json(paginated("Announcements retrieved successfully", rows, {
+            page: Number(page),
+            limit: Number(limit),
+            total: count,
+            totalPages: Math.ceil(count / limit),
+        }));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};
+
+function getOptionalUser(req) {
+    const authHeader = req.headers["authorization"];
+    if (!authHeader || typeof authHeader !== "string") return null;
+    const [bearer, token, ...others] = authHeader.split(" ");
+    if (bearer.toLowerCase() !== "bearer" || !token || others.length > 0) return null;
+    try {
+        return verifyToken(token);
+    } catch {
+        return null;
+    }
+}
+
+export const getById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = getOptionalUser(req);
+
+        const where = { id };
+
+        if (!user) {
+            where.status_id = ANNOUNCEMENT_STATUS.ACTIVE;
+        }
+
+        const announcement = await Announcement.findOne({
+            where,
+            include: announcementsInclude,
+            paranoid: false,
+        });
+
+        if (!announcement) return res.status(404).json(notFound("Announcement not found"));
+
+        if (user && announcement.user_id === user.id) {
+            return res.status(200).json(success("Announcement retrieved successfully", announcement));
+        }
+
+        if (announcement.status_id !== ANNOUNCEMENT_STATUS.ACTIVE) {
+            return res.status(404).json(notFound("Announcement not found"));
+        }
+
+        return res.status(200).json(success("Announcement retrieved successfully", announcement));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};
+
+export const getMyAnnouncements = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const offset = (page - 1) * limit;
+
+        const { count, rows } = await Announcement.findAndCountAll({
+            where: { user_id: req.user.id },
+            include: announcementsInclude,
+            order: [["createdAt", "DESC"]],
+            limit,
+            offset,
+            distinct: true,
+            paranoid: false,
+        });
+
+        return res.status(200).json(paginated("Announcements retrieved successfully", rows, {
+            page,
+            limit,
+            total: count,
+            totalPages: Math.ceil(count / limit),
+        }));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};
+
+export const create = async (req, res) => {
+    try {
+        const body = {
+            ...req.body,
+            user_id: req.user.id,
+            status_id: ANNOUNCEMENT_STATUS.PENDING_REVIEW,
+        };
+
+        const announcement = await Announcement.create(body);
+
+        if (req.files && req.files.length > 0) {
+            const images = req.files.map((file, index) => ({
+                announcement_id: announcement.id,
+                url: file.path.replace(/\\/g, "/"),
+                is_primary: index === 0,
+            }));
+            await AnnouncementImage.bulkCreate(images);
+        }
+
+        const result = await Announcement.findByPk(announcement.id, {
+            include: { model: AnnouncementImage, as: "AnnouncementImages" },
+        });
+
+        return res.status(201).json(created("Announcement created successfully", result));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};
+
+export const update = async (req, res) => {
+    try {
+        const announcement = req.announcement;
+
+        await Announcement.update(req.body, { where: { id: announcement.id } });
+
+        const result = await Announcement.findByPk(announcement.id, {
+            include: announcementsInclude,
+            paranoid: false,
+        });
+
+        return res.status(200).json(updated("Announcement updated successfully", result));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};
+
+export const delete_ = async (req, res) => {
+    try {
+        const announcement = req.announcement;
+
+        await Announcement.destroy({ where: { id: announcement.id } });
+
+        return res.status(200).json(deleted("Announcement deleted successfully"));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};
+
+export const uploadImages = async (req, res) => {
+    try {
+        const announcement = req.announcement;
+
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ status: "fail", message: "No images provided" });
+        }
+
+        const existingImagesCount = await AnnouncementImage.count({ where: { announcement_id: announcement.id } });
+
+        const images = req.files.map((file, index) => ({
+            announcement_id: announcement.id,
+            url: file.path.replace(/\\/g, "/"),
+            is_primary: existingImagesCount === 0 && index === 0,
+        }));
+
+        const createdImages = await AnnouncementImage.bulkCreate(images);
+
+        return res.status(201).json(created("Images uploaded successfully", createdImages));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};
+
+export const deleteImage = async (req, res) => {
+    try {
+        const { imageId } = req.params;
+
+        const image = await AnnouncementImage.findOne({
+            where: { id: imageId },
+            include: {
+                model: Announcement,
+                attributes: ["id", "user_id"],
+            },
+        });
+
+        if (!image) return res.status(404).json(notFound("Image not found"));
+
+        if (image.Announcement.user_id !== req.user.id) return res.status(403).json(forbidden());
+
+        await image.destroy();
+
+        return res.status(200).json(deleted("Image deleted successfully"));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};
+
+export const getPending = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const offset = (page - 1) * limit;
+
+        const { count, rows } = await Announcement.findAndCountAll({
+            where: { status_id: ANNOUNCEMENT_STATUS.PENDING_REVIEW },
+            include: announcementsInclude,
+            order: [["createdAt", "ASC"]],
+            limit,
+            offset,
+            distinct: true,
+            paranoid: false,
+        });
+
+        return res.status(200).json(paginated("Pending announcements retrieved successfully", rows, {
+            page,
+            limit,
+            total: count,
+            totalPages: Math.ceil(count / limit),
+        }));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};
+
+export const approve = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const announcement = await Announcement.findByPk(id, { paranoid: false });
+
+        if (!announcement) return res.status(404).json(notFound("Announcement not found"));
+
+        if (announcement.status_id !== ANNOUNCEMENT_STATUS.PENDING_REVIEW) {
+            return res.status(400).json({ status: "fail", message: "Announcement is not in pending review status" });
+        }
+
+        await announcement.update({ status_id: ANNOUNCEMENT_STATUS.ACTIVE });
+
+        return res.status(200).json(success("Announcement approved successfully", announcement));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};
+
+export const reject = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const announcement = await Announcement.findByPk(id, { paranoid: false });
+
+        if (!announcement) return res.status(404).json(notFound("Announcement not found"));
+
+        if (announcement.status_id !== ANNOUNCEMENT_STATUS.PENDING_REVIEW) {
+            return res.status(400).json({ status: "fail", message: "Announcement is not in pending review status" });
+        }
+
+        await announcement.update({ status_id: ANNOUNCEMENT_STATUS.REJECTED });
+
+        return res.status(200).json(success("Announcement rejected successfully", announcement));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};

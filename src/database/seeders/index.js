@@ -5,6 +5,8 @@ import seedUserStatuses from "./user-status.seeder.js";
 import seedCountries from "./country.seeder.js";
 import seedDepartments from "./department.seeder.js";
 import seedCities from "./city.seeder.js";
+import seedPropertyTypes from "./property-type.seeder.js";
+import seedAnnouncementStatuses from "./announcement-status.seeder.js";
 import seedUsers from "./user.seeder.js";
 
 const runSeeders = async () => {
@@ -17,6 +19,8 @@ const runSeeders = async () => {
     await seedCountries();
     await seedDepartments();
     await seedCities();
+    await seedPropertyTypes();
+    await seedAnnouncementStatuses();
     await seedUsers();
 
     console.log("All seeders completed successfully.");
