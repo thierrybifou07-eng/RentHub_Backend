@@ -58,11 +58,7 @@ export const User = orm.define(
       type: DataTypes.STRING(255),
       allowNull: true,
     },
-    avatar: {
-      type: DataTypes.STRING(255),
-      allowNull: true,
-    },
-    email_verified_at: {
+email_verified_at: {
       type: DataTypes.DATE,
       allowNull: true,
       defaultValue: null
@@ -124,3 +120,4 @@ export const User = orm.define(
 
 
 export default User;
+

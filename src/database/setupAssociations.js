@@ -10,7 +10,8 @@ import {
   PropertyType,
   AnnouncementStatus,
   Announcement,
-  AnnouncementImage,
+  MediaType,
+  Media,
 } from "./models/index.js";
 
 const setupAssociations = () => {
@@ -47,9 +48,14 @@ const setupAssociations = () => {
   User.hasMany(Announcement, { foreignKey: "user_id" });
   Announcement.belongsTo(User, { foreignKey: "user_id" });
 
-  Announcement.hasMany(AnnouncementImage, { foreignKey: "announcement_id", onDelete: "CASCADE" });
-  AnnouncementImage.belongsTo(Announcement, { foreignKey: "announcement_id" });
+  MediaType.hasMany(Media, { foreignKey: "media_type_id" });
+  Media.belongsTo(MediaType, { foreignKey: "media_type_id" });
 
+  User.hasMany(Media, { foreignKey: "mediable_id", scope: { mediable_type: "User" }, constraints: false });
+  Media.belongsTo(User, { foreignKey: "mediable_id", constraints: false });
+
+  Announcement.hasMany(Media, { foreignKey: "mediable_id", scope: { mediable_type: "Announcement" }, constraints: false });
+  Media.belongsTo(Announcement, { foreignKey: "mediable_id", constraints: false });
 };
 
 setupAssociations();

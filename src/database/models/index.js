@@ -9,7 +9,8 @@ import UserStatus from "./user-status.model.js";
 import PropertyType from "./property-type.model.js";
 import AnnouncementStatus from "./announcement-status.model.js";
 import Announcement from "./announcement.model.js";
-import AnnouncementImage from "./announcement-image.model.js";
+import MediaType from "./media-type.model.js";
+import Media from "./media.model.js";
 
 export {
     City,
@@ -23,7 +24,8 @@ export {
     PropertyType,
     AnnouncementStatus,
     Announcement,
-    AnnouncementImage,
+    MediaType,
+    Media,
 };
 
 export default {
@@ -38,5 +40,6 @@ export default {
     PropertyType,
     AnnouncementStatus,
     Announcement,
-    AnnouncementImage,
+    MediaType,
+    Media,
 };

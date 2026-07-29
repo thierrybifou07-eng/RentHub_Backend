@@ -1,6 +1,7 @@
 import { Op } from "sequelize";
-import { Announcement, AnnouncementImage, City, PropertyType } from "../../database/models/index.js";
+import { Announcement, Media, MediaType, City, PropertyType } from "../../database/models/index.js";
 import ANNOUNCEMENT_STATUS from "./announcementStatus.js";
+import MEDIA_TYPE_CODES from "../media/mediaType.js";
 import { verifyToken } from "../auth/jwt.js";
 import {
     success,
@@ -23,9 +24,11 @@ const announcementsInclude = [
     { model: City, as: "City", attributes: ["id", "name"] },
     { model: PropertyType, as: "PropertyType", attributes: ["id", "code", "label"] },
     {
-        model: AnnouncementImage,
-        as: "AnnouncementImages",
-        attributes: ["id", "url", "is_primary"],
+        model: Media,
+        as: "Media",
+        where: { mediable_type: "Announcement" },
+        required: false,
+        include: [{ model: MediaType, as: "MediaType", attributes: ["id", "code", "label"] }],
     },
 ];
 
@@ -106,7 +109,7 @@ export const getById = async (req, res) => {
         const announcement = await Announcement.findOne({
             where,
             include: announcementsInclude,
-            paranoid: false,
+            paranoid: true,
         });
 
         if (!announcement) return res.status(404).json(notFound("Announcement not found"));
@@ -163,16 +166,22 @@ export const create = async (req, res) => {
         const announcement = await Announcement.create(body);
 
         if (req.files && req.files.length > 0) {
-            const images = req.files.map((file, index) => ({
-                announcement_id: announcement.id,
+            const mediaType = await MediaType.findOne({ where: { code: MEDIA_TYPE_CODES.ANNOUNCEMENT_IMAGE } });
+            const mediaItems = req.files.map((file, index) => ({
+                media_type_id: mediaType.id,
                 url: file.path.replace(/\\/g, "/"),
+                filename: file.originalname,
+                mime_type: file.mimetype,
+                file_size: file.size,
                 is_primary: index === 0,
+                mediable_id: announcement.id,
+                mediable_type: "Announcement",
             }));
-            await AnnouncementImage.bulkCreate(images);
+            await Media.bulkCreate(mediaItems);
         }
 
         const result = await Announcement.findByPk(announcement.id, {
-            include: { model: AnnouncementImage, as: "AnnouncementImages" },
+            include: { model: Media, as: "Media", where: { mediable_type: "Announcement" }, required: false },
         });
 
         return res.status(201).json(created("Announcement created successfully", result));
@@ -215,20 +224,26 @@ export const uploadImages = async (req, res) => {
         const announcement = req.announcement;
 
         if (!req.files || req.files.length === 0) {
-            return res.status(400).json({ status: "fail", message: "No images provided" });
+            return res.status(400).json({ status: "fail", message: "No files provided" });
         }
 
-        const existingImagesCount = await AnnouncementImage.count({ where: { announcement_id: announcement.id } });
+        const existingMediaCount = await Media.count({ where: { mediable_id: announcement.id, mediable_type: "Announcement" } });
+        const mediaType = await MediaType.findOne({ where: { code: MEDIA_TYPE_CODES.ANNOUNCEMENT_IMAGE } });
 
-        const images = req.files.map((file, index) => ({
-            announcement_id: announcement.id,
+        const mediaItems = req.files.map((file, index) => ({
+            media_type_id: mediaType.id,
             url: file.path.replace(/\\/g, "/"),
-            is_primary: existingImagesCount === 0 && index === 0,
+            filename: file.originalname,
+            mime_type: file.mimetype,
+            file_size: file.size,
+            is_primary: existingMediaCount === 0 && index === 0,
+            mediable_id: announcement.id,
+            mediable_type: "Announcement",
         }));
 
-        const createdImages = await AnnouncementImage.bulkCreate(images);
+        const createdMedia = await Media.bulkCreate(mediaItems);
 
-        return res.status(201).json(created("Images uploaded successfully", createdImages));
+        return res.status(201).json(created("Files uploaded successfully", createdMedia));
     } catch (err) {
         return handleServerError(res, err);
     }
@@ -238,21 +253,21 @@ export const deleteImage = async (req, res) => {
     try {
         const { imageId } = req.params;
 
-        const image = await AnnouncementImage.findOne({
-            where: { id: imageId },
+        const media = await Media.findOne({
+            where: { id: imageId, mediable_type: "Announcement" },
             include: {
                 model: Announcement,
                 attributes: ["id", "user_id"],
             },
         });
 
-        if (!image) return res.status(404).json(notFound("Image not found"));
+        if (!media) return res.status(404).json(notFound("Media not found"));
 
-        if (image.Announcement.user_id !== req.user.id) return res.status(403).json(forbidden());
+        if (media.Announcement.user_id !== req.user.id) return res.status(403).json(forbidden());
 
-        await image.destroy();
+        await media.destroy();
 
-        return res.status(200).json(deleted("Image deleted successfully"));
+        return res.status(200).json(deleted("File deleted successfully"));
     } catch (err) {
         return handleServerError(res, err);
     }

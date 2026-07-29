@@ -1,18 +1,18 @@
 import express from "express";
-/* import cors from "cors";
- */import cookieParser from "cookie-parser";
-import '../config/env.js';
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import "../config/env.js";
 import apiRouter from "./routes.js";
 import { corsOptions } from "../config/corsOptions.js";
 import "./database/setupAssociations.js";
 
 const app = express();
 
-/* app.use(cors(corsOptions));
- */app.use(cookieParser());
+app.use(cors(corsOptions));
+app.use(cookieParser());
 app.use(express.json());
 
-app.use('/api/v1', apiRouter);
+app.use("/api/v1", apiRouter);
 
 const port = process.env.PORT;
 app.listen(port, () => {
