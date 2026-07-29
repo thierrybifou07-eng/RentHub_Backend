@@ -1,4 +1,4 @@
-import UserModel, { Otp } from "../../database/models/index.js";
+import { Otp } from "../../database/models/index.js";
 
 export function getPlural(word) {
     // 🔹 Liste des pluriels irréguliers
@@ -111,11 +111,4 @@ export function removeAccents(str) {
 }
 
 
-export const REFRESH_COOKIE = "refreshToken";
 
-export const cookieOptions = (expires) => ({
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    ...(expires ? { expires } : {}),
-});

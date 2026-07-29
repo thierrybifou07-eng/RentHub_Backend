@@ -6,9 +6,9 @@ import USER_STATUS from "./userStatus.js";
 import {
   badRequest,
   conflict,
-  error,
   fail,
   forbidden,
+  handleServerError,
   notFound,
   registered,
   success,
@@ -31,13 +31,6 @@ const cookieOptions = (expires) => ({
   ...(expires ? { expires } : {}),
 });
 
-const handleServerError = (res, err) => {
-  console.error(err);
-  return res
-    .status(500)
-    .json(error(undefined, process.env.NODE_ENV === "production" ? undefined : err.message));
-};
-
 export const register = async (req, res) => {
   try {
     const checkExistingUser = await User.findOne({
@@ -50,9 +43,11 @@ export const register = async (req, res) => {
       if (checkExistingUser.phone === req.body.phone) return res.status(409).json(conflict("That phone number is already taken"));
     }
 
-    const body = { ...req.body, user_status_id: USER_STATUS.INACTIVE };
+    const body = { ...req.body, user_status_id: USER_STATUS.PENDING_VERIFICATION };
 
     const user = await User.create(body);
+
+    let emailSent = false;
 
     try {
       const countMinutes = 5;
@@ -62,20 +57,18 @@ export const register = async (req, res) => {
 
       await Otp.upsert(otp);
 
-      try {
-        await sendTemplateEmail(body.email, "Inscription réussie", "welcome", {
-          username: `${body.lastname} ${body.firstname}`,
-          validatedCode: code,
-          countMinutes,
-        });
-      } catch (e) {
-        console.error(e.message);
-      }
+      await sendTemplateEmail(body.email, "Inscription réussie", "welcome", {
+        username: `${body.lastname} ${body.firstname}`,
+        validatedCode: code,
+        countMinutes,
+      });
+
+      emailSent = true;
     } catch (e) {
       console.error(e);
     }
 
-    return res.status(201).json(registered());
+    return res.status(201).json({ ...registered(), emailSent });
   } catch (err) {
     return handleServerError(res, err);
   }
@@ -93,7 +86,10 @@ export const login = async (req, res) => {
 
     if (!passwordMatch) return res.status(400).json(fail("Invalid credentials"));
 
-    // TODO: si besoin métier confirmé, bloquer ici selon user_status_id (ex: compte suspendu)
+    const blockedStatuses = [USER_STATUS.SUSPENDED, USER_STATUS.INACTIVE, USER_STATUS.PENDING_VERIFICATION];
+    if (blockedStatuses.includes(user.user_status_id)) {
+      return res.status(403).json(forbidden("Account is not active"));
+    }
 
     const accessToken = generateToken({
       id: user.id,
@@ -131,9 +127,19 @@ export const refresh = async (req, res) => {
 
     if (!refreshToken) return res.status(401).json(unauthorized("Missing refresh token"));
 
-    const session = await Session.findOne({ where: { token: hashToken(refreshToken) } });
+    const hashedTokenValue = hashToken(refreshToken);
 
-    if (!session) return res.status(401).json(unauthorized("Invalid session"));
+    let session = await Session.findOne({ where: { token: hashedTokenValue } });
+
+    // Vol détecté : le token soumis correspond à un previous_token_hash connu
+    if (!session) {
+      const stolenSession = await Session.findOne({ where: { previous_token_hash: hashedTokenValue } });
+      if (stolenSession) {
+        await Session.destroy({ where: { user_id: stolenSession.user_id } });
+        return res.status(401).json(unauthorized("Session compromised, please log in again"));
+      }
+      return res.status(401).json(unauthorized("Invalid session"));
+    }
 
     if (session.expires_at < new Date()) {
       await session.destroy();
@@ -147,6 +153,12 @@ export const refresh = async (req, res) => {
       return res.status(401).json(unauthorized("Invalid session"));
     }
 
+    const blockedStatuses = [USER_STATUS.SUSPENDED, USER_STATUS.INACTIVE, USER_STATUS.PENDING_VERIFICATION];
+    if (blockedStatuses.includes(user.user_status_id)) {
+      await session.destroy();
+      return res.status(403).json(forbidden("Account is not active"));
+    }
+
     const accessToken = generateToken({
       id: user.id,
       email: user.email,
@@ -156,11 +168,22 @@ export const refresh = async (req, res) => {
       emailVerifyAt: user.email_verified_at,
     });
 
-    // Rotation : chaque refresh invalide l'ancien token et en émet un nouveau
+    // Rotation : invalide l'ancien token et en émet un nouveau
+    const currentHash = session.token;
     const { token: newRefreshToken, hashedToken: newHashedToken, expiresAt } = generateRefreshToken();
 
-    session.set({ token: newHashedToken, expires_at: expiresAt });
+    session.set({ token: newHashedToken, previous_token_hash: currentHash, expires_at: expiresAt });
     await session.save();
+
+    // Surveillance : IP ou user-agent inhabituel
+    const currentUA = req.headers["user-agent"] ?? null;
+    const currentIP = req.ip;
+    if (session.user_agent && currentUA && session.user_agent !== currentUA) {
+      console.warn(`[SECURITY] User-Agent changed for session ${session.id}: "${session.user_agent}" -> "${currentUA}"`);
+    }
+    if (session.ip_address && currentIP && session.ip_address !== currentIP) {
+      console.warn(`[SECURITY] IP changed for session ${session.id}: ${session.ip_address} -> ${currentIP}`);
+    }
 
     res.cookie(REFRESH_COOKIE, newRefreshToken, cookieOptions(expiresAt));
 
@@ -203,9 +226,11 @@ export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
-    const user = await User.scope("onlyId").findOne({ where: { email } });
+    const user = await User.findOne({ where: { email }, attributes: ["id", "user_status_id"] });
 
-    if (!user) return res.status(400).json(fail("Invalid credentials"));
+    if (!user || [USER_STATUS.SUSPENDED].includes(user.user_status_id)) {
+      return res.status(200).json(success("If this email is registered, you will receive a reset link"));
+    }
 
     const userOtp = await Otp.findOne({ where: { user_id: user.id, type: OTP_TYPES.PASSWORD_RESET } });
 
@@ -217,6 +242,7 @@ export const forgotPassword = async (req, res) => {
 
     await Otp.upsert({ code, expiredAt, type: OTP_TYPES.PASSWORD_RESET, user_id: user.id });
 
+    let emailSent = true;
     try {
       await sendTemplateEmail(email, "Réinitialisation du Mot de Passe", "resetPassword", {
         countMinutes,
@@ -224,9 +250,10 @@ export const forgotPassword = async (req, res) => {
       });
     } catch (e) {
       console.error(e.message);
+      emailSent = false;
     }
 
-    return res.status(200).json(success());
+    return res.status(200).json(success("If this email is registered, you will receive a reset link", { emailSent }));
   } catch (err) {
     return handleServerError(res, err);
   }

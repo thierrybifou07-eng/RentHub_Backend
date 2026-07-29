@@ -1,5 +1,4 @@
 import Joi from "joi";
-import { ROLES } from "../../../config/auth/app.js";
 import { generateCodeRegex } from "../../shared/helpers/helpers.js";
 
 // Requires: 1 lowercase, 1 uppercase, 1 digit, 1 special char (@$!%*?&),
@@ -34,7 +33,6 @@ export const registerSchema = Joi.object({
     gender: Joi.string().valid("M", "F").optional().messages({
         "any.only": "Gender must be either 'M' or 'F'",
     }),
-    profile: Joi.number().integer().optional(),
     password: Joi.string().regex(passwordRegex).required().messages({
         "string.empty": "Password is required",
         "string.base": "Password must be a string",
@@ -122,23 +120,7 @@ export const loginSchema = Joi.object({
     }),
 }).options({ stripUnknown: true });
 
-/* export const sendRegenerateCodeSchema = Joi.object({
-    id: Joi.number().integer().required().messages({
-        "number.empty": "Id is required",
-        "number.base": "Id must be integrer",
-    })
-
-}).options({ stripUnknown: true });
- */
 // ===== Password reset flow =====
-
-
-export const sendCodeResetSchema = Joi.object({
-    email: Joi.string().min(6).max(6).required().messages({
-        "string.empty": "Code is required",
-        "string.email": "Code must be a valid code",
-    }),
-}).options({ stripUnknown: true });
 
 export const resetPasswordSchema = (length = 6) =>
     Joi.object({

@@ -15,9 +15,14 @@ export const Session = orm.define(
       allowNull: false,
     },
     token: {
-      type: DataTypes.STRING(64), // sha256 hex digest = 64 caractères
+      type: DataTypes.STRING(64),
       allowNull: false,
       unique: true,
+    },
+    previous_token_hash: {
+      type: DataTypes.STRING(64),
+      allowNull: true,
+      defaultValue: null,
     },
     user_agent: {
       type: DataTypes.STRING(255),

@@ -22,7 +22,7 @@ authRoutes.post("/logout", authenticate, logout)
 authRoutes.post("/forgot-password", validate(validatedEmailSchema), forgotPassword)
 authRoutes.post("/reset-password", validate(resetPasswordSchema()), resetPassword)
 authRoutes.post("/verify-email", validate(verifiedEmailSchema()), verifyEmail)
-authRoutes.post("/regenerate-code", regenerateCode)
+authRoutes.post("/regenerate-code", authenticate, regenerateCode)
 authRoutes.get("/me", authenticate, getCurrentUser)
 
 export default authRoutes;

@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import "../config/env.js";
 import apiRouter from "./routes.js";
 import { corsOptions } from "../config/corsOptions.js";
+import { loginLimiter, forgotPasswordLimiter, registerLimiter } from "../config/rateLimiter.js";
 import "./database/setupAssociations.js";
 
 const app = express();
@@ -11,6 +12,10 @@ const app = express();
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
+
+app.use("/api/v1/auth/login", loginLimiter);
+app.use("/api/v1/auth/forgot-password", forgotPasswordLimiter);
+app.use("/api/v1/auth/register", registerLimiter);
 
 app.use("/api/v1", apiRouter);
 
