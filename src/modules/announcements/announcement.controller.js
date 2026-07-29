@@ -1,8 +1,9 @@
 import { Op } from "sequelize";
-import { Announcement, Media, MediaType, City, PropertyType } from "../../database/models/index.js";
+import { Announcement, Media, MediaType, City, PropertyType, User } from "../../database/models/index.js";
 import ANNOUNCEMENT_STATUS from "./announcementStatus.js";
 import MEDIA_TYPE_CODES from "../media/mediaType.js";
 import { verifyToken } from "../auth/jwt.js";
+import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
 import {
     success,
     created,
@@ -184,6 +185,18 @@ export const create = async (req, res) => {
             include: { model: Media, as: "Media", where: { mediable_type: "Announcement" }, required: false },
         });
 
+        try {
+            const owner = await User.findByPk(req.user.id, { attributes: ["email", "lastname", "firstname"] });
+            if (owner) {
+                await sendTemplateEmail(owner.email, "Annonce soumise avec succès", "announcementCreated", {
+                    username: `${owner.lastname} ${owner.firstname}`,
+                    announcementTitle: announcement.title,
+                });
+            }
+        } catch (e) {
+            console.error(e.message);
+        }
+
         return res.status(201).json(created("Announcement created successfully", result));
     } catch (err) {
         return handleServerError(res, err);
@@ -314,6 +327,18 @@ export const approve = async (req, res) => {
 
         await announcement.update({ status_id: ANNOUNCEMENT_STATUS.ACTIVE });
 
+        try {
+            const owner = await User.findByPk(announcement.user_id, { attributes: ["email", "lastname", "firstname"] });
+            if (owner) {
+                await sendTemplateEmail(owner.email, "Annonce approuvée", "announcementApproved", {
+                    username: `${owner.lastname} ${owner.firstname}`,
+                    announcementTitle: announcement.title,
+                });
+            }
+        } catch (e) {
+            console.error(e.message);
+        }
+
         return res.status(200).json(success("Announcement approved successfully", announcement));
     } catch (err) {
         return handleServerError(res, err);
@@ -333,6 +358,19 @@ export const reject = async (req, res) => {
         }
 
         await announcement.update({ status_id: ANNOUNCEMENT_STATUS.REJECTED });
+
+        try {
+            const owner = await User.findByPk(announcement.user_id, { attributes: ["email", "lastname", "firstname"] });
+            if (owner) {
+                await sendTemplateEmail(owner.email, "Annonce non retenue", "announcementRejected", {
+                    username: `${owner.lastname} ${owner.firstname}`,
+                    announcementTitle: announcement.title,
+                    reason: req.body.reason || "Votre annonce ne respecte pas nos conditions générales d'utilisation.",
+                });
+            }
+        } catch (e) {
+            console.error(e.message);
+        }
 
         return res.status(200).json(success("Announcement rejected successfully", announcement));
     } catch (err) {

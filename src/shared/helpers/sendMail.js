@@ -10,6 +10,8 @@ async function getHtmlContent(template, props = {}) {
     const basePath = `views/emails/${template}/email.`
     const templatePath = resolve(`${basePath}ejs`)
     const cssFiles = []
+    const sharedCssPath = resolve('views/emails/_shared/style.css')
+    if (existsSync(sharedCssPath)) cssFiles.push(sharedCssPath)
     const cssPath = resolve(`${basePath}css`)
     if (existsSync(cssPath)) cssFiles.push(cssPath)
     const htmlContent = await ejs.renderFile(templatePath, props)

@@ -281,7 +281,9 @@ export const resetPassword = async (req, res) => {
     });
 
     try {
-      await sendTemplateEmail(email, "Mot de Passe Réinitialisé", "resetPasswordSuccess");
+      await sendTemplateEmail(email, "Mot de Passe Réinitialisé", "resetPasswordSuccess", {
+        username: `${user.lastname} ${user.firstname}`,
+      });
     } catch (e) {
       console.error(e.message);
     }
