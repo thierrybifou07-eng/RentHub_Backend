@@ -4,6 +4,7 @@ import { generateVerificationCode } from "../../src/shared/helpers/helpers.js";
 await sendTemplateEmail('contact@gmail.com', '👨🏾‍💻Maildev, test de connetion📈', 'welcome', {
     username: 'Mugiwarano Dev',
     validatedCode: '241580',
+    heading: `Mugiwarano Dev, bienvenue sur notre plateforme`, // Assuming you have access to the user object
     countMinutes: 5
 })
 

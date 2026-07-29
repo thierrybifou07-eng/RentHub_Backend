@@ -12,6 +12,7 @@ import {
   Announcement,
   MediaType,
   Media,
+  Favorite,
 } from "./models/index.js";
 
 const setupAssociations = () => {
@@ -56,6 +57,15 @@ const setupAssociations = () => {
 
   Announcement.hasMany(Media, { foreignKey: "mediable_id", scope: { mediable_type: "Announcement" }, constraints: false });
   Media.belongsTo(Announcement, { foreignKey: "mediable_id", constraints: false });
+
+  User.belongsToMany(Announcement, { through: Favorite, as: "favoriteAnnouncements", foreignKey: "user_id" });
+  Announcement.belongsToMany(User, { through: Favorite, as: "favoritedBy", foreignKey: "announcement_id" });
+
+  User.hasMany(Favorite, { foreignKey: "user_id" });
+  Favorite.belongsTo(User, { foreignKey: "user_id" });
+
+  Announcement.hasMany(Favorite, { foreignKey: "announcement_id" });
+  Favorite.belongsTo(Announcement, { foreignKey: "announcement_id" });
 };
 
 setupAssociations();

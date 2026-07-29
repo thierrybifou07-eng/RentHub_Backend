@@ -1,4 +1,4 @@
-import { Op } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 import { Announcement, Media, MediaType, City, PropertyType, User } from "../../database/models/index.js";
 import ANNOUNCEMENT_STATUS from "./announcementStatus.js";
 import MEDIA_TYPE_CODES from "../media/mediaType.js";
@@ -20,6 +20,11 @@ const handleServerError = (res, err) => {
         .status(500)
         .json({ status: "error", message: process.env.NODE_ENV === "production" ? "Internal server error" : err.message });
 };
+
+const favoritesCountAttr = [
+    Sequelize.literal(`(SELECT COUNT(*) FROM favorites WHERE favorites.announcement_id = Announcement.id)`),
+    'favoritesCount'
+];
 
 const announcementsInclude = [
     { model: City, as: "City", attributes: ["id", "name"] },
@@ -67,6 +72,7 @@ export const getAll = async (req, res) => {
         const { count, rows } = await Announcement.findAndCountAll({
             where,
             include: announcementsInclude,
+            attributes: { include: [favoritesCountAttr] },
             order,
             limit: Number(limit),
             offset: Number(offset),
@@ -110,6 +116,7 @@ export const getById = async (req, res) => {
         const announcement = await Announcement.findOne({
             where,
             include: announcementsInclude,
+            attributes: { include: [favoritesCountAttr] },
             paranoid: true,
         });
 
@@ -138,6 +145,7 @@ export const getMyAnnouncements = async (req, res) => {
         const { count, rows } = await Announcement.findAndCountAll({
             where: { user_id: req.user.id },
             include: announcementsInclude,
+            attributes: { include: [favoritesCountAttr] },
             order: [["createdAt", "DESC"]],
             limit,
             offset,
@@ -211,6 +219,7 @@ export const update = async (req, res) => {
 
         const result = await Announcement.findByPk(announcement.id, {
             include: announcementsInclude,
+            attributes: { include: [favoritesCountAttr] },
             paranoid: false,
         });
 
@@ -295,6 +304,7 @@ export const getPending = async (req, res) => {
         const { count, rows } = await Announcement.findAndCountAll({
             where: { status_id: ANNOUNCEMENT_STATUS.PENDING_REVIEW },
             include: announcementsInclude,
+            attributes: { include: [favoritesCountAttr] },
             order: [["createdAt", "ASC"]],
             limit,
             offset,

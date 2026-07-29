@@ -11,6 +11,7 @@ import AnnouncementStatus from "./announcement-status.model.js";
 import Announcement from "./announcement.model.js";
 import MediaType from "./media-type.model.js";
 import Media from "./media.model.js";
+import Favorite from "./favorite.model.js";
 
 export {
     City,
@@ -26,6 +27,7 @@ export {
     Announcement,
     MediaType,
     Media,
+    Favorite,
 };
 
 export default {
@@ -42,4 +44,5 @@ export default {
     Announcement,
     MediaType,
     Media,
+    Favorite,
 };

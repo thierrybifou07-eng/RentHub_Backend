@@ -1,19 +1,18 @@
 import Role from "../models/role.model.js";
 
 const seedRoles = async () => {
-  const count = await Role.count();
-  if (count > 0) {
-    console.log("Roles table already seeded, skipping...");
-    return;
-  }
-
   const roles = [
     { code: "ROLE_USER", label: "Utilisateur" },
     { code: "ROLE_ADMIN", label: "Administrateur" },
     { code: "ROLE_ROOT", label: "Super Administrateur" },
+    { code: "ROLE_TENANT", label: "Locataire" },
+    { code: "ROLE_OWNER", label: "Propriétaire" },
+    { code: "ROLE_AGENCY", label: "Agence" },
   ];
 
-  await Role.bulkCreate(roles, { individualHooks: true });
+  for (const role of roles) {
+    await Role.findOrCreate({ where: { code: role.code }, defaults: role });
+  }
   console.log(`${roles.length} roles seeded successfully.`);
 };
 
