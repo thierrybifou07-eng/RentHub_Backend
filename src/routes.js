@@ -6,6 +6,7 @@ import favoriteRoutes from "./modules/favorites/favorite.routes.js";
 import conversationRoutes from "./modules/messaging/messaging.routes.js";
 import reportRoutes from "./modules/reports/report.routes.js";
 import subscriptionRoutes from "./modules/subscriptions/subscription.routes.js";
+import adminRoutes from "./modules/admin/admin.routes.js";
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use('/favorites', favoriteRoutes)
 router.use('/conversations', conversationRoutes)
 router.use('/reports', reportRoutes)
 router.use('/subscriptions', subscriptionRoutes)
+router.use('/admin', adminRoutes)
 
 export default router;
