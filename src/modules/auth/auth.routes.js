@@ -6,12 +6,13 @@ import {
     resetPassword,
     verifyEmail,
     getCurrentUser,
-    regenerateCode
+    regenerateCode,
+    logout
 } from "./auth.controller.js";
 import { authenticate, isGrantedAccess } from "./auth.middleware.js";
 import { ROLES } from "../../../config/auth/app.js";
 import validate from "../../shared/middlewares/validate.js";
-import { loginSchema, registerSchema, resetPasswordSchema, validatedCodeSchema, validatedEmailSchema } from "./user.schema.js";
+import { loginSchema, registerSchema, resetPasswordSchema,  validatedEmailSchema, verifiedEmailSchema } from "./user.schema.js";
 const authRoutes = express.Router();
 
 const middleware = async (req, res, next) => {
@@ -21,10 +22,11 @@ const middleware = async (req, res, next) => {
 
 authRoutes.post("/register", validate(registerSchema), register)
 authRoutes.post("/login", validate(loginSchema), login)
+authRoutes.post("/logout", authenticate, logout)
 authRoutes.post("/forgot-password", validate(validatedEmailSchema), forgotPassword)
 authRoutes.post("/reset-password", validate(resetPasswordSchema()), resetPassword)
-authRoutes.post("/verify-email", authenticate, validate(validatedCodeSchema()), verifyEmail)
-authRoutes.post("/regenerate-code", authenticate, regenerateCode)
+authRoutes.post("/verify-email", validate(verifiedEmailSchema()), verifyEmail)
+authRoutes.post("/regenerate-code", regenerateCode)
 authRoutes.get("/me", authenticate, getCurrentUser)
 
 export default authRoutes;

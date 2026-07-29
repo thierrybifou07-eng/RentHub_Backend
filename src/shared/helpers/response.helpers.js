@@ -106,6 +106,14 @@ export const error = (message = MESSAGES.SRV.ERR) => ({
   message,
 });
 
+export const handleServerError = (res, err) => {
+  console.error(err);
+  return res
+    .status(500)
+    .json(error(undefined, process.env.NODE_ENV === "production" ? undefined : err.message));
+};
+
+
 export const serviceUnavailable = (message = MESSAGES.SRV.UNAVAILABLE, err = null) => ({
   status: "error",
   message,

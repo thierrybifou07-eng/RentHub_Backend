@@ -109,3 +109,13 @@ export function removeAccents(str) {
         .normalize("NFD")                  // Décompose les caractères accentués
         .replace(/[\u0300-\u036f]/g, "");   // Supprime les marques diacritiques
 }
+
+
+export const REFRESH_COOKIE = "refreshToken";
+
+export const cookieOptions = (expires) => ({
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    ...(expires ? { expires } : {}),
+});

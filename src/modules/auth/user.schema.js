@@ -159,11 +159,15 @@ export const resetPasswordSchema = (length = 6) =>
         }),
     }).options({ stripUnknown: true });
 
-export const validatedCodeSchema = (length = 6) =>
+export const verifiedEmailSchema = (length = 6) =>
     Joi.object({
         code: Joi.string().regex(generateCodeRegex(length)).required().messages({
             "string.empty": "Code is required",
             "string.pattern.base": `Code must be ${length} characters long`,
+        }),
+        email: Joi.string().email().required().messages({
+            "string.empty": "Email is required",
+            "string.email": "Email must be a valid email address",
         }),
     }).options({ stripUnknown: true });
 
