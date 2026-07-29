@@ -15,6 +15,8 @@ import {
   Favorite,
   Conversation,
   Message,
+  Report,
+  ReportStatus,
 } from "./models/index.js";
 
 const setupAssociations = () => {
@@ -83,6 +85,18 @@ const setupAssociations = () => {
 
   User.hasMany(Message, { foreignKey: "sender_id", as: "sentMessages" });
   Message.belongsTo(User, { as: "sender", foreignKey: "sender_id" });
+
+  ReportStatus.hasMany(Report, { foreignKey: "status_id" });
+  Report.belongsTo(ReportStatus, { foreignKey: "status_id" });
+
+  Announcement.hasMany(Report, { foreignKey: "announcement_id" });
+  Report.belongsTo(Announcement, { foreignKey: "announcement_id" });
+
+  User.hasMany(Report, { foreignKey: "reporter_id", as: "submittedReports" });
+  Report.belongsTo(User, { as: "reporter", foreignKey: "reporter_id" });
+
+  User.hasMany(Report, { foreignKey: "admin_id", as: "handledReports" });
+  Report.belongsTo(User, { as: "admin", foreignKey: "admin_id" });
 };
 
 setupAssociations();

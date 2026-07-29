@@ -14,6 +14,8 @@ import Media from "./media.model.js";
 import Favorite from "./favorite.model.js";
 import Conversation from "./conversation.model.js";
 import Message from "./message.model.js";
+import ReportStatus from "./report-status.model.js";
+import Report from "./report.model.js";
 
 export {
     City,
@@ -32,6 +34,8 @@ export {
     Favorite,
     Conversation,
     Message,
+    ReportStatus,
+    Report,
 };
 
 export default {
@@ -51,4 +55,6 @@ export default {
     Favorite,
     Conversation,
     Message,
+    ReportStatus,
+    Report,
 };
