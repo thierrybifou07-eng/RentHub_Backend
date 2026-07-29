@@ -16,6 +16,8 @@ import Conversation from "./conversation.model.js";
 import Message from "./message.model.js";
 import ReportStatus from "./report-status.model.js";
 import Report from "./report.model.js";
+import SubscriptionPlan from "./subscription-plan.model.js";
+import UserSubscription from "./user-subscription.model.js";
 
 export {
     City,
@@ -36,6 +38,8 @@ export {
     Message,
     ReportStatus,
     Report,
+    SubscriptionPlan,
+    UserSubscription,
 };
 
 export default {
@@ -57,4 +61,6 @@ export default {
     Message,
     ReportStatus,
     Report,
+    SubscriptionPlan,
+    UserSubscription,
 };

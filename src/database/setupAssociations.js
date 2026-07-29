@@ -17,6 +17,8 @@ import {
   Message,
   Report,
   ReportStatus,
+  SubscriptionPlan,
+  UserSubscription,
 } from "./models/index.js";
 
 const setupAssociations = () => {
@@ -97,6 +99,12 @@ const setupAssociations = () => {
 
   User.hasMany(Report, { foreignKey: "admin_id", as: "handledReports" });
   Report.belongsTo(User, { as: "admin", foreignKey: "admin_id" });
+
+  SubscriptionPlan.hasMany(UserSubscription, { foreignKey: "plan_id" });
+  UserSubscription.belongsTo(SubscriptionPlan, { foreignKey: "plan_id" });
+
+  User.hasMany(UserSubscription, { foreignKey: "user_id" });
+  UserSubscription.belongsTo(User, { foreignKey: "user_id" });
 };
 
 setupAssociations();

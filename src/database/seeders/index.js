@@ -9,6 +9,7 @@ import seedPropertyTypes from "./property-type.seeder.js";
 import seedAnnouncementStatuses from "./announcement-status.seeder.js";
 import seedMediaTypes from "./media-type.seeder.js";
 import seedReportStatuses from "./report-status.seeder.js";
+import seedSubscriptionPlans from "./subscription-plan.seeder.js";
 import seedUsers from "./user.seeder.js";
 
 const runSeeders = async () => {
@@ -25,6 +26,7 @@ const runSeeders = async () => {
     await seedAnnouncementStatuses();
     await seedMediaTypes();
     await seedReportStatuses();
+    await seedSubscriptionPlans();
     await seedUsers();
 
     console.log("All seeders completed successfully.");

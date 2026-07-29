@@ -58,14 +58,24 @@ export const getAll = async (req, res) => {
             if (maxRooms) where.rooms[Op.lte] = maxRooms;
         }
 
-        let order;
+        const priorityOrder = Sequelize.literal(`(
+            SELECT COALESCE(sp.priority, 0)
+            FROM user_subscriptions us
+            JOIN subscription_plans sp ON sp.id = us.plan_id
+            WHERE us.user_id = Announcement.user_id AND us.status = 'ACTIVE'
+            LIMIT 1
+        )`);
+
+        let sortOrder;
         switch (sort) {
-            case "price_asc": order = [["price", "ASC"]]; break;
-            case "price_desc": order = [["price", "DESC"]]; break;
-            case "oldest": order = [["createdAt", "ASC"]]; break;
+            case "price_asc": sortOrder = [["price", "ASC"]]; break;
+            case "price_desc": sortOrder = [["price", "DESC"]]; break;
+            case "oldest": sortOrder = [["createdAt", "ASC"]]; break;
             case "newest":
-            default: order = [["createdAt", "DESC"]]; break;
+            default: sortOrder = [["createdAt", "DESC"]]; break;
         }
+
+        const order = [[priorityOrder, "DESC"], ...sortOrder];
 
         const offset = (page - 1) * limit;
 
