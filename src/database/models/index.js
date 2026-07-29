@@ -12,6 +12,8 @@ import Announcement from "./announcement.model.js";
 import MediaType from "./media-type.model.js";
 import Media from "./media.model.js";
 import Favorite from "./favorite.model.js";
+import Conversation from "./conversation.model.js";
+import Message from "./message.model.js";
 
 export {
     City,
@@ -28,6 +30,8 @@ export {
     MediaType,
     Media,
     Favorite,
+    Conversation,
+    Message,
 };
 
 export default {
@@ -45,4 +49,6 @@ export default {
     MediaType,
     Media,
     Favorite,
+    Conversation,
+    Message,
 };

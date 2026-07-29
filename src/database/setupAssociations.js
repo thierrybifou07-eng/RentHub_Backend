@@ -13,6 +13,8 @@ import {
   MediaType,
   Media,
   Favorite,
+  Conversation,
+  Message,
 } from "./models/index.js";
 
 const setupAssociations = () => {
@@ -66,6 +68,21 @@ const setupAssociations = () => {
 
   Announcement.hasMany(Favorite, { foreignKey: "announcement_id" });
   Favorite.belongsTo(Announcement, { foreignKey: "announcement_id" });
+
+  Announcement.hasMany(Conversation, { foreignKey: "announcement_id" });
+  Conversation.belongsTo(Announcement, { foreignKey: "announcement_id" });
+
+  User.hasMany(Conversation, { foreignKey: "tenant_id", as: "initiatedConversations" });
+  Conversation.belongsTo(User, { as: "tenant", foreignKey: "tenant_id" });
+
+  User.hasMany(Conversation, { foreignKey: "owner_id", as: "receivedConversations" });
+  Conversation.belongsTo(User, { as: "owner", foreignKey: "owner_id" });
+
+  Conversation.hasMany(Message, { foreignKey: "conversation_id" });
+  Message.belongsTo(Conversation, { foreignKey: "conversation_id" });
+
+  User.hasMany(Message, { foreignKey: "sender_id", as: "sentMessages" });
+  Message.belongsTo(User, { as: "sender", foreignKey: "sender_id" });
 };
 
 setupAssociations();
