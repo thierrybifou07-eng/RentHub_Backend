@@ -1,4 +1,4 @@
-import { Op, Sequelize } from "sequelize";
+﻿import { Op, Sequelize } from "sequelize";
 import { Announcement, Media, MediaType, City, PropertyType, User } from "../../database/models/index.js";
 import ANNOUNCEMENT_STATUS from "./announcementStatus.js";
 import MEDIA_TYPE_CODES from "../media/mediaType.js";
@@ -10,7 +10,6 @@ import {
     updated,
     deleted,
     notFound,
-    forbidden,
     paginated,
 } from "../../shared/helpers/response.helpers.js";
 
@@ -206,7 +205,7 @@ export const create = async (req, res) => {
         try {
             const owner = await User.findByPk(req.user.id, { attributes: ["email", "lastname", "firstname"] });
             if (owner) {
-                await sendTemplateEmail(owner.email, "Annonce soumise avec succès", "announcementCreated", {
+                await sendTemplateEmail(owner.email, "Annonce soumise avec succÃ¨s", "announcementCreated", {
                     username: `${owner.lastname} ${owner.firstname}`,
                     announcementTitle: announcement.title,
                 });
@@ -246,60 +245,6 @@ export const delete_ = async (req, res) => {
         await Announcement.destroy({ where: { id: announcement.id } });
 
         return res.status(200).json(deleted("Announcement deleted successfully"));
-    } catch (err) {
-        return handleServerError(res, err);
-    }
-};
-
-export const uploadImages = async (req, res) => {
-    try {
-        const announcement = req.announcement;
-
-        if (!req.files || req.files.length === 0) {
-            return res.status(400).json({ status: "fail", message: "No files provided" });
-        }
-
-        const existingMediaCount = await Media.count({ where: { mediable_id: announcement.id, mediable_type: "Announcement" } });
-        const mediaType = await MediaType.findOne({ where: { code: MEDIA_TYPE_CODES.ANNOUNCEMENT_IMAGE } });
-
-        const mediaItems = req.files.map((file, index) => ({
-            media_type_id: mediaType.id,
-            url: file.path.replace(/\\/g, "/"),
-            filename: file.originalname,
-            mime_type: file.mimetype,
-            file_size: file.size,
-            is_primary: existingMediaCount === 0 && index === 0,
-            mediable_id: announcement.id,
-            mediable_type: "Announcement",
-        }));
-
-        const createdMedia = await Media.bulkCreate(mediaItems);
-
-        return res.status(201).json(created("Files uploaded successfully", createdMedia));
-    } catch (err) {
-        return handleServerError(res, err);
-    }
-};
-
-export const deleteImage = async (req, res) => {
-    try {
-        const { imageId } = req.params;
-
-        const media = await Media.findOne({
-            where: { id: imageId, mediable_type: "Announcement" },
-            include: {
-                model: Announcement,
-                attributes: ["id", "user_id"],
-            },
-        });
-
-        if (!media) return res.status(404).json(notFound("Media not found"));
-
-        if (media.Announcement.user_id !== req.user.id) return res.status(403).json(forbidden());
-
-        await media.destroy();
-
-        return res.status(200).json(deleted("File deleted successfully"));
     } catch (err) {
         return handleServerError(res, err);
     }
@@ -350,7 +295,7 @@ export const approve = async (req, res) => {
         try {
             const owner = await User.findByPk(announcement.user_id, { attributes: ["email", "lastname", "firstname"] });
             if (owner) {
-                await sendTemplateEmail(owner.email, "Annonce approuvée", "announcementApproved", {
+                await sendTemplateEmail(owner.email, "Annonce approuvÃ©e", "announcementApproved", {
                     username: `${owner.lastname} ${owner.firstname}`,
                     announcementTitle: announcement.title,
                 });
@@ -385,7 +330,7 @@ export const reject = async (req, res) => {
                 await sendTemplateEmail(owner.email, "Annonce non retenue", "announcementRejected", {
                     username: `${owner.lastname} ${owner.firstname}`,
                     announcementTitle: announcement.title,
-                    reason: req.body.reason || "Votre annonce ne respecte pas nos conditions générales d'utilisation.",
+                    reason: req.body.reason || "Votre annonce ne respecte pas nos conditions gÃ©nÃ©rales d'utilisation.",
                 });
             }
         } catch (e) {
@@ -397,3 +342,4 @@ export const reject = async (req, res) => {
         return handleServerError(res, err);
     }
 };
+

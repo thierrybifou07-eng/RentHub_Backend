@@ -13,12 +13,13 @@ async function getMediaType(code) {
   return mediaType;
 }
 
-export default async function createUpload(mediaTypeCode) {
+export default async function createUpload(mediaTypeCode, pathResolver) {
   const mediaType = await getMediaType(mediaTypeCode);
 
   const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-      const uploadPath = `public/uploads/${mediaTypeCode}/`;
+      const suffix = pathResolver ? `/${pathResolver(req)}` : '';
+      const uploadPath = `public/uploads/${mediaTypeCode}${suffix}`;
       if (!existsSync(uploadPath)) {
         mkdirSync(uploadPath, { recursive: true });
       }

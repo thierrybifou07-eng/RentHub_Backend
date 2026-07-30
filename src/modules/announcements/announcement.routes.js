@@ -6,8 +6,6 @@ import {
     create,
     update,
     delete_,
-    uploadImages,
-    deleteImage,
     getPending,
     approve,
     reject,
@@ -49,7 +47,5 @@ router.get("/:id", parseIdParam, getById);
 router.post("/", authenticate, mediaUploadMiddleware, validate(createAnnouncementSchema), create);
 router.put("/:id", authenticate, parseIdParam, isOwner, validate(updateAnnouncementSchema), update);
 router.delete("/:id", authenticate, parseIdParam, isOwner, delete_);
-router.post("/:id/media", authenticate, parseIdParam, isOwner, mediaUploadMiddleware, uploadImages);
-router.delete("/:id/media/:imageId", authenticate, parseIdParam, isOwner, deleteImage);
 
 export default router;
