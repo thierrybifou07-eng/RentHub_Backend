@@ -19,7 +19,6 @@ const isWeakCode = (code) => {
 
 const generate = (length) => {
   let code;
-
   do {
     const num = Math.floor(Math.random() * 10 ** length);
     code = num.toString().padStart(length, "0");

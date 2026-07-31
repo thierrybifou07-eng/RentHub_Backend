@@ -12,9 +12,9 @@ export const registered = (message = MESSAGES.AUTH.REGISTERED) => ({
  * @param {string} token The new token of the user
  * @returns 
  */
-export const verified = (message = MESSAGES.AUTH.VERIFIED, token) => ({
+export const verified = (token) => ({
   status: "success",
-  message,
+  message: MESSAGES.AUTH.VERIFIED,
   token
 });
 

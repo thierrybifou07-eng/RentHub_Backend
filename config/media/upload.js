@@ -1,7 +1,7 @@
 import multer from "multer";
 import { extname, resolve } from "node:path";
 import { existsSync, mkdirSync } from "node:fs";
-import MediaType from "../database/models/media-type.model.js";
+import MediaType from "../../src/database/models/media-type.model.js";
 
 const mediaTypeCache = {};
 

@@ -39,6 +39,8 @@ const announcementsInclude = [
 
 export const getAll = async (req, res) => {
     try {
+        console.log('Here is the req in this request////////////////////////////////////////////////////////////////////////////////////////////////////////',req.query);
+        
         const { minPrice, maxPrice, property_type_id, city_id, furnished, minRooms, maxRooms, page, limit, sort } = req.query;
 
         const where = { status_id: ANNOUNCEMENT_STATUS.ACTIVE };

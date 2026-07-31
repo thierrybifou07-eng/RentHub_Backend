@@ -58,6 +58,7 @@ export const register = async (req, res) => {
       await Otp.upsert(otp);
 
       await sendTemplateEmail(body.email, "Inscription réussie", "welcome", {
+        heading: "Bienvenue sur RentHub !",
         username: `${body.lastname} ${body.firstname}`,
         validatedCode: code,
         countMinutes,
@@ -86,7 +87,7 @@ export const login = async (req, res) => {
 
     if (!passwordMatch) return res.status(400).json(fail("Invalid credentials"));
 
-    const blockedStatuses = [USER_STATUS.SUSPENDED, USER_STATUS.INACTIVE, USER_STATUS.PENDING_VERIFICATION];
+    const blockedStatuses = [USER_STATUS.SUSPENDED, USER_STATUS.INACTIVE];
     if (blockedStatuses.includes(user.user_status_id)) {
       return res.status(403).json(forbidden("Account is not active"));
     }
@@ -329,16 +330,18 @@ export const verifyEmail = async (req, res) => {
     });
 
     const token = generateToken({ ...payload, emailVerifyAt: verifiedTime });
-
+    let emailSent = false
     try {
       await sendTemplateEmail(user.email, "Verification de l'émail réussie", "congratulation", {
         username: `${user.lastname} ${user.firstname}`,
+        heading: "Congratulations"
       });
+      emailSent = true
     } catch (e) {
       console.error(e.message);
     }
 
-    return res.status(200).json(verified(token));
+    return res.status(200).json({ ...verified(token), emailSent });
   } catch (err) {
     return handleServerError(res, err);
   }
@@ -354,6 +357,30 @@ export const regenerateCode = async (req, res) => {
 
     const userOtp = await Otp.findOne({ where: { user_id: user.id, type: OTP_TYPES.EMAIL_VERIFICATION } });
 
+    let emailSent = false;
+
+    if (!userOtp) {
+      try {
+        const countMinutes = 5;
+        const { code, expiredAt } = await generateVerificationCode(6, 1000 * countMinutes * 60);
+
+        const otp = { code, expiredAt, user_id: user.id, type: OTP_TYPES.EMAIL_VERIFICATION };
+
+        await Otp.create(otp);
+
+        await sendTemplateEmail(user.email, "Demande de nouveau code", "regenerateCode", {
+          heading: "Veuillez utiliser ce nouveau code",
+          validatedCode: code,
+          countMinutes,
+        });
+
+        emailSent = true;
+      } catch (e) {
+        console.error(e);
+      }
+      return res.status(200).json({ ...success(), emailSent });
+    }
+
     if (userOtp && userOtp.expiredAt > new Date()) return res.status(400).json(conflict("The last code is still valid"));
 
     const countMinutes = 5;
@@ -364,6 +391,7 @@ export const regenerateCode = async (req, res) => {
 
     try {
       await sendTemplateEmail(user.email, "Demande de nouveau code", "regenerateCode", {
+        heading: "Veuillez utiliser ce nouveau code",
         validatedCode: code,
         countMinutes,
       });

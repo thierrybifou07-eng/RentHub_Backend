@@ -17,19 +17,11 @@ export const Role = orm.define(
     label: {
       type: DataTypes.STRING(50),
       allowNull: false,
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-    },
-    updatedAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-    },
+    }
   },
   {
     tableName: "roles",
-    timestamps: false,
+    timestamps: true,
   }
 );
 
