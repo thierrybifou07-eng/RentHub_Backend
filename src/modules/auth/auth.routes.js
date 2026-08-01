@@ -8,17 +8,19 @@ import {
     verifyEmail,
     getCurrentUser,
     regenerateCode,
-    logout
+    logout,
+    logoutAll
 } from "./auth.controller.js";
 import { authenticate } from "./auth.middleware.js";
 import validate from "../../shared/middlewares/validate.js";
-import { loginSchema, registerSchema, resetPasswordSchema, validatedEmailSchema, verifiedEmailSchema } from "./user.schema.js";
+import { loginSchema, registerSchema, resetPasswordSchema, refreshTokenSchema, validatedEmailSchema, verifiedEmailSchema } from "./user.schema.js";
 const authRoutes = express.Router();
 
 authRoutes.post("/register", validate(registerSchema), register)
 authRoutes.post("/login", validate(loginSchema), login)
-authRoutes.post("/refresh", authenticate, refresh)
-authRoutes.post("/logout", authenticate, logout)
+authRoutes.post("/refresh", validate(refreshTokenSchema), refresh)
+authRoutes.post("/logout", validate(refreshTokenSchema), logout)
+authRoutes.post("/logout-all", authenticate, logoutAll)
 authRoutes.post("/forgot-password", validate(validatedEmailSchema), forgotPassword)
 authRoutes.post("/reset-password", validate(resetPasswordSchema()), resetPassword)
 authRoutes.post("/verify-email", authenticate, validate(verifiedEmailSchema()), verifyEmail)

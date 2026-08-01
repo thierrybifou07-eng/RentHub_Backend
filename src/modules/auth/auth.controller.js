@@ -16,19 +16,22 @@ import {
   validationFail,
   verified,
 } from "../../shared/helpers/response.helpers.js";
-import { generateToken } from "./jwt.js";
+import { buildTokenPayload, generateToken } from "./jwt.js";
 import { Op } from "sequelize";
 import { generateVerificationCode } from "./otp.helpers.js";
 import { generateRefreshToken, hashToken } from "./session.helpers.js";
 import orm from "../../../config/sequelize_app.js";
 
-const REFRESH_COOKIE = "refreshToken";
-
-const cookieOptions = (expires) => ({
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax",
-  ...(expires ? { expires } : {}),
+const toSafeUser = (user) => ({
+  id: user.id,
+  firstname: user.firstname,
+  lastname: user.lastname,
+  email: user.email,
+  phone: user.phone,
+  role_id: user.role_id,
+  user_status_id: user.user_status_id,
+  email_verified_at: user.email_verified_at,
+  city_id: user.city_id,
 });
 
 export const register = async (req, res) => {
@@ -92,14 +95,7 @@ export const login = async (req, res) => {
       return res.status(403).json(forbidden("Account is not active"));
     }
 
-    const accessToken = generateToken({
-      id: user.id,
-      email: user.email,
-      phone: user.phone,
-      role: user.role_id,
-      userStatus: user.user_status_id,
-      emailVerifyAt: user.email_verified_at,
-    });
+    const accessToken = generateToken(buildTokenPayload(user));
 
     const { token: refreshToken, hashedToken, expiresAt } = generateRefreshToken();
 
@@ -111,12 +107,10 @@ export const login = async (req, res) => {
       ip_address: req.ip,
     });
 
-    res.cookie(REFRESH_COOKIE, refreshToken, cookieOptions(expiresAt));
-
     user.set({ last_login_at: new Date() });
     await user.save();
 
-    return res.status(200).json(success("Login successful", { token: accessToken }));
+    return res.status(200).json(success("Login successful", { token: accessToken, refreshToken, user: toSafeUser(user) }));
   } catch (err) {
     return handleServerError(res, err);
   }
@@ -124,7 +118,7 @@ export const login = async (req, res) => {
 
 export const refresh = async (req, res) => {
   try {
-    const refreshToken = req.cookies?.[REFRESH_COOKIE];
+    const refreshToken = req.body?.refreshToken;
 
     if (!refreshToken) return res.status(401).json(unauthorized("Missing refresh token"));
 
@@ -160,14 +154,7 @@ export const refresh = async (req, res) => {
       return res.status(403).json(forbidden("Account is not active"));
     }
 
-    const accessToken = generateToken({
-      id: user.id,
-      email: user.email,
-      phone: user.phone,
-      role: user.role_id,
-      userStatus: user.user_status_id,
-      emailVerifyAt: user.email_verified_at,
-    });
+    const accessToken = generateToken(buildTokenPayload(user));
 
     // Rotation : invalide l'ancien token et en émet un nouveau
     const currentHash = session.token;
@@ -186,9 +173,7 @@ export const refresh = async (req, res) => {
       console.warn(`[SECURITY] IP changed for session ${session.id}: ${session.ip_address} -> ${currentIP}`);
     }
 
-    res.cookie(REFRESH_COOKIE, newRefreshToken, cookieOptions(expiresAt));
-
-    return res.status(200).json(success("Token refreshed", { token: accessToken }));
+    return res.status(200).json(success("Token refreshed", { token: accessToken, refreshToken: newRefreshToken }));
   } catch (err) {
     return handleServerError(res, err);
   }
@@ -196,13 +181,11 @@ export const refresh = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    const refreshToken = req.cookies?.[REFRESH_COOKIE];
+    const refreshToken = req.body?.refreshToken;
 
     if (refreshToken) {
       await Session.destroy({ where: { token: hashToken(refreshToken) } });
     }
-
-    res.clearCookie(REFRESH_COOKIE, cookieOptions());
 
     return res.status(200).json(success("Logged out successfully"));
   } catch (err) {
@@ -210,12 +193,10 @@ export const logout = async (req, res) => {
   }
 };
 
-// Bonus : déconnecte l'utilisateur de tous ses appareils (nécessite d'être authentifié)
+// Bonus : déconnecte l'utilisateur de tous ses appareils
 export const logoutAll = async (req, res) => {
   try {
     await Session.destroy({ where: { user_id: req.user.id } });
-
-    res.clearCookie(REFRESH_COOKIE, cookieOptions());
 
     return res.status(200).json(success("Logged out from all devices"));
   } catch (err) {

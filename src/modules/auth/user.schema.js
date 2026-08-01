@@ -120,6 +120,15 @@ export const loginSchema = Joi.object({
     }),
 }).options({ stripUnknown: true });
 
+// ===== Refresh token (rotation) =====
+
+export const refreshTokenSchema = Joi.object({
+    refreshToken: Joi.string().required().messages({
+        "string.empty": "Refresh token is required",
+        "string.base": "Refresh token must be a string",
+    }),
+}).options({ stripUnknown: true });
+
 // ===== Password reset flow =====
 
 export const resetPasswordSchema = (length = 6) =>

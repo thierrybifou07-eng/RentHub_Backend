@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import cookieParser from "cookie-parser";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import "../config/env.js";
@@ -14,7 +13,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 
 app.use(cors(corsOptions));
-app.use(cookieParser());
 
 app.post("/api/v1/stripe/webhook", express.raw({ type: "application/json" }), handleWebhook);
 

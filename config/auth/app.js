@@ -15,3 +15,12 @@ export const ROLE_IDS = {
     OWNER: 5,
     AGENCY: 6,
 }
+
+export const ROLE_NAMES = Object.freeze({
+    [ROLE_IDS.USER]: ROLES.USER,
+    [ROLE_IDS.ADMIN]: ROLES.ADMIN,
+    [ROLE_IDS.ROOT]: ROLES.ROOT,
+    [ROLE_IDS.TENANT]: ROLES.TENANT,
+    [ROLE_IDS.OWNER]: ROLES.OWNER,
+    [ROLE_IDS.AGENCY]: ROLES.AGENCY,
+})
