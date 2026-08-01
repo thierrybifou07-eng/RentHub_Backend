@@ -14,6 +14,13 @@ export default function validate(schema, target = "body") {
 
         req[target] = value
 
+        /*        Object.defineProperty(req, target, {
+            value,
+            writable: true,
+            configurable: true,
+            enumerable: true
+        }); */
+
         next()
     }
 }
