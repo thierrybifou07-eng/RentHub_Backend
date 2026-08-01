@@ -1,4 +1,5 @@
 import { Router } from "express";
+import catalogRoutes from "./modules/catalog/catalog.routes.js";
 import authRoutes from "./modules/auth/auth.routes.js";
 import announcementRoutes from "./modules/announcements/announcement.routes.js";
 import mediaRoutes from "./modules/media/media.routes.js";
@@ -10,6 +11,7 @@ import adminRoutes from "./modules/admin/admin.routes.js";
 
 const router = Router();
 
+router.use("/", catalogRoutes)
 router.use('/auth', authRoutes)
 router.use('/announcements', announcementRoutes)
 router.use('/media', mediaRoutes)

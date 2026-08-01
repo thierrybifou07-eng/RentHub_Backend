@@ -3,6 +3,7 @@ import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
 import { verifyPassword } from "./password.js";
 import OTP_TYPES from "../../../config/auth/OTP_CODE.js";
 import USER_STATUS from "./userStatus.js";
+import { ROLE_IDS } from "../../../config/auth/app.js";
 import {
   badRequest,
   conflict,
@@ -46,7 +47,11 @@ export const register = async (req, res) => {
       if (checkExistingUser.phone === req.body.phone) return res.status(409).json(conflict("That phone number is already taken"));
     }
 
-    const body = { ...req.body, user_status_id: USER_STATUS.PENDING_VERIFICATION };
+    const body = {
+        ...req.body,
+        user_status_id: USER_STATUS.PENDING_VERIFICATION,
+        role_id: ROLE_IDS.TENANT,
+    };
 
     const user = await User.create(body);
 
@@ -83,7 +88,8 @@ export const login = async (req, res) => {
     const { email, password } = req.body;
 
     const user = await User.scope("withPassword").findOne({ where: { email } });
-
+    console.log('The founded user :', user);
+    
     if (!user) return res.status(400).json(fail("Invalid credentials"));
 
     const passwordMatch = await verifyPassword(password, user.password);
