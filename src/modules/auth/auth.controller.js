@@ -38,19 +38,19 @@ const toSafeUser = (user) => ({
 export const register = async (req, res) => {
   try {
     const checkExistingUser = await User.findOne({
-      where: /* { [Op.or]: [ */{ email: req.body.email }/* , { phone: req.body.phone }] },
-      attributes: ["id", "email", "phone"], */
+      where: { [Op.or]: [{ email: req.body.email }, { phone: req.body.phone }] },
+      attributes: ["id", "email", "phone"],
     });
 
     if (checkExistingUser) {
       if (checkExistingUser.email === req.body.email) return res.status(409).json(conflict("That Email is already taken"));
-/*       if (checkExistingUser.phone === req.body.phone) return res.status(409).json(conflict("That phone number is already taken"));
- */    }
+      if (checkExistingUser.phone === req.body.phone) return res.status(409).json(conflict("That phone number is already taken"));
+    }
 
     const body = {
-        ...req.body,
-        user_status_id: USER_STATUS.PENDING_VERIFICATION,
-        role_id: ROLE_IDS.TENANT,
+      ...req.body,
+      user_status_id: USER_STATUS.PENDING_VERIFICATION,
+      role_id: ROLE_IDS.TENANT,
     };
 
     const user = await User.create(body);
@@ -88,7 +88,7 @@ export const login = async (req, res) => {
     const { email, password } = req.body;
 
     const user = await User.scope("withPassword").findOne({ where: { email } });
-    
+
     if (!user) return res.status(400).json(fail("Invalid credentials"));
 
     const passwordMatch = await verifyPassword(password, user.password);
@@ -215,9 +215,7 @@ export const forgotPassword = async (req, res) => {
 
     const user = await User.findOne({ where: { email }, attributes: ["id", "user_status_id"] });
 
-    if (!user || [USER_STATUS.SUSPENDED].includes(user.user_status_id)) {
-      return res.status(200).json(success("If this email is registered, you will receive a reset link"));
-    }
+    if (!user || [USER_STATUS.SUSPENDED, USER_STATUS.INACTIVE].includes(user.user_status_id)) return res.status(401).json(unauthorized("Contact the administrator"));
 
     const userOtp = await Otp.findOne({ where: { user_id: user.id, type: OTP_TYPES.PASSWORD_RESET } });
 
@@ -233,6 +231,7 @@ export const forgotPassword = async (req, res) => {
     try {
       await sendTemplateEmail(email, "Réinitialisation du Mot de Passe", "resetPassword", {
         countMinutes,
+        heading: 'Code de verification',
         resetCode: code,
       });
     } catch (e) {
@@ -240,7 +239,7 @@ export const forgotPassword = async (req, res) => {
       emailSent = false;
     }
 
-    return res.status(200).json(success("If this email is registered, you will receive a reset link", { emailSent }));
+    return res.status(200).json(success("If this email is registered, you will receive a code", { emailSent }));
   } catch (err) {
     return handleServerError(res, err);
   }
@@ -269,6 +268,7 @@ export const resetPassword = async (req, res) => {
 
     try {
       await sendTemplateEmail(email, "Mot de Passe Réinitialisé", "resetPasswordSuccess", {
+        heading: 'Réinitialisation du mot de passe réussi !',
         username: `${user.lastname} ${user.firstname}`,
       });
     } catch (e) {
@@ -320,7 +320,7 @@ export const verifyEmail = async (req, res) => {
     try {
       await sendTemplateEmail(user.email, "Verification de l'émail réussie", "congratulation", {
         username: `${user.lastname} ${user.firstname}`,
-        heading: "Congratulations"
+        heading: 'Felicitation !'
       });
       emailSent = true
     } catch (e) {

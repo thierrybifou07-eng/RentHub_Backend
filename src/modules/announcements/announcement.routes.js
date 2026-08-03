@@ -10,7 +10,7 @@ import {
     approve,
     reject,
 } from "./announcement.controller.js";
-import { isOwner, isAdmin } from "./announcement.middleware.js";
+import { isOwner } from "./announcement.middleware.js";
 import { authenticate } from "../auth/auth.middleware.js";
 import { parseIdParam } from "../../shared/middlewares/parseIdParam.js";
 import validate from "../../shared/middlewares/validate.js";
@@ -21,6 +21,7 @@ import {
     updateAnnouncementSchema,
     announcementFilterSchema,
 } from "./announcement.schema.js";
+import { isAdmin } from "../admin/admin.middleware.js";
 
 const router = Router();
 

@@ -10,7 +10,6 @@ import {
     rejectSubscription,
 } from "./subscription.controller.js";
 import { authenticate } from "../auth/auth.middleware.js";
-import { isAdmin } from "../announcements/announcement.middleware.js";
 import { parseIdParam } from "../../shared/middlewares/parseIdParam.js";
 import validate from "../../shared/middlewares/validate.js";
 import {
@@ -23,6 +22,7 @@ import {
     confirmPaymentSchema,
 } from "./stripe.schema.js";
 import { createPaymentIntent, confirmPayment } from "./stripe.controller.js";
+import { isAdmin } from "../admin/admin.middleware.js";
 
 const router = Router();
 

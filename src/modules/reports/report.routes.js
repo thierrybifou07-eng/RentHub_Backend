@@ -8,10 +8,10 @@ import {
     takeActionOnReport,
 } from "./report.controller.js";
 import { authenticate } from "../auth/auth.middleware.js";
-import { isAdmin } from "../announcements/announcement.middleware.js";
 import { parseIdParam } from "../../shared/middlewares/parseIdParam.js";
 import validate from "../../shared/middlewares/validate.js";
 import { createReportSchema, reportFilterSchema, adminNoteSchema } from "./report.schema.js";
+import { isAdmin } from "../admin/admin.middleware.js";
 
 const router = Router();
 

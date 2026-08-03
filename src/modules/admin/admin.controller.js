@@ -8,8 +8,9 @@ import {
     Message,
 } from "../../database/models/index.js";
 import ANNOUNCEMENT_STATUS from "../announcements/announcementStatus.js";
-import { ROLE_IDS } from "../../../config/auth/app.js";
-import { success } from "../../shared/helpers/response.helpers.js";
+import { ROLE_IDS, ROLE_NAMES } from "../../../config/auth/app.js";
+import USER_STATUS from "../auth/userStatus.js";
+import { fail, forbidden, notFound, success, updated, validationFail } from "../../shared/helpers/response.helpers.js";
 
 const handleServerError = (res, err) => {
     console.error(err);
@@ -142,3 +143,60 @@ export const getRecentActivity = async (req, res) => {
         return handleServerError(res, err);
     }
 };
+
+export const manageAnnouncement = async (req, res) => {
+    console.log("Hello world manageAnnouncement");
+
+}
+
+export const manageUserRole = async (req, res) => {
+    /**
+     * This function is used to find the id of or the role value
+     * 
+     * @param {Object} obj The object of our roles
+     * @param {string} value The value that we have to find the key
+     * @returns 
+     */
+    function getKeyByValue(obj, value) {
+        return Object.keys(obj).find(key => obj[key] === value);
+    }
+    try {
+        const { id } = req.user
+        const { userId, currentRole, newRole
+        } = req.body
+
+
+        const currentRoleId = Number(getKeyByValue(ROLE_NAMES, currentRole))
+        const newRoleId = Number(getKeyByValue(ROLE_NAMES, newRole))
+
+        const userToUpdate = await User.findByPk(userId)
+
+        if (!userToUpdate) return res.status(404).json(notFound())
+
+        if (id === userId) return res.status(401).json({ ...forbidden(), error: "You can't change yourself" })
+
+        if (userToUpdate.role_id === (ROLE_IDS.ADMIN || ROLE_IDS.ROOT)) return res.status(401).json(forbidden())
+
+        if (newRole === currentRole) return res.status(400).json(fail('The new role must be different of the last current role'))
+
+        if (userToUpdate.user_status_id !== USER_STATUS.ACTIVE
+            || userToUpdate.email_verified_at === null
+            || userToUpdate.verified_at === null) return res.status(400).json(fail('The userToUpdate miss requirements and verification'))
+        if (userToUpdate.role_id !== currentRoleId) return res.status(409).json(validationFail("Invalid credentials"))
+
+        userToUpdate.set({ role_id: newRoleId })
+        await userToUpdate.save()
+
+        res.status(200).json(updated())
+    } catch (error) {
+        return handleServerError(res, error);
+    }
+
+
+
+}
+
+export const manageUserStatus = async (req, res) => {
+    console.log("Hello world manageUserStatus");
+
+}

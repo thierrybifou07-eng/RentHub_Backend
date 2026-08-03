@@ -1,5 +1,5 @@
-import { Announcement } from "../../database/models/index.js";
-import { forbidden, unauthorized, notFound } from "../../shared/helpers/response.helpers.js";
+import { Announcement,} from "../../database/models/index.js";
+import { forbidden, notFound } from "../../shared/helpers/response.helpers.js";
 
 export async function isOwner(req, res, next) {
     try {
@@ -17,17 +17,4 @@ export async function isOwner(req, res, next) {
     } catch (err) {
         return res.status(500).json({ status: "error", message: "Internal server error" });
     }
-}
-
-export function isAdmin(req, res, next) {
-    if (!req.user) return res.status(401).json(unauthorized());
-
-    const adminRoleId = 2;
-    const rootRoleId = 3;
-
-    if (req.user.role !== adminRoleId && req.user.role !== rootRoleId) {
-        return res.status(403).json(forbidden());
-    }
-
-    next();
 }
