@@ -10,7 +10,7 @@ import {
 import ANNOUNCEMENT_STATUS from "../announcements/announcementStatus.js";
 import { ROLE_IDS, ROLE_NAMES } from "../../../config/auth/app.js";
 import USER_STATUS from "../auth/userStatus.js";
-import { fail, forbidden, notFound, success, updated, validationFail } from "../../shared/helpers/response.helpers.js";
+import { fail, forbidden, notFound, success, unauthorized, updated, validationFail } from "../../shared/helpers/response.helpers.js";
 
 const handleServerError = (res, err) => {
     console.error(err);
@@ -197,6 +197,41 @@ export const manageUserRole = async (req, res) => {
 }
 
 export const manageUserStatus = async (req, res) => {
-    console.log("Hello world manageUserStatus");
+
+    /**
+     * This function is used to find the id of or the role value
+     * 
+     * @param {Object} obj The object of our roles
+     * @param {string} value The value that we have to find the key
+     * @returns 
+     */
+    try {
+        const { id } = req.user
+        const { userId, currentStatus, newStatus
+        } = req.body
+
+        const currentStatusId = USER_STATUS[currentStatus]
+
+        const newStatusId = USER_STATUS[newStatus]
+
+        const userToUpdate = await User.findByPk(userId)
+
+        if (!userToUpdate) return res.status(404).json(notFound())
+
+        if (id === userId) return res.status(401).json({ ...forbidden(), error: "You can't change yourself" })
+
+        if (userToUpdate.user_status_id === USER_STATUS.PENDING_VERIFICATION) return res.status(401).json(unauthorized("The user is not verified yet"))
+
+        if (newStatus === currentStatus) return res.status(400).json(fail('The new status must be different of the last current role'))
+
+        if (userToUpdate.user_status_id !== currentStatusId) return res.status(409).json(validationFail("Invalid credentials"))
+
+        userToUpdate.set({ user_status_id: newStatusId })
+        await userToUpdate.save()
+
+        res.status(200).json(updated('Resource updated successfully', { userToUpdate }))
+    } catch (error) {
+        return handleServerError(res, error);
+    }
 
 }

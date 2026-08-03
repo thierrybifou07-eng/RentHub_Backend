@@ -1,9 +1,12 @@
 import Joi from "joi";
 import { ROLES } from "../../../config/auth/app.js";
+import USER_STATUS from "../auth/userStatus.js";
 
 const { ROOT, ...list } = ROLES
-
 const rolesValues = Object.values(list)
+
+const { PENDING_VERIFICATION, ...statuses } = USER_STATUS
+const statusValues = Object.keys(statuses)
 
 export const updateUserRoleSchema = Joi.object({
 
@@ -22,16 +25,17 @@ export const updateUserRoleSchema = Joi.object({
 }).options({ stripUnknown: true });
 
 export const updateUserStatusSchema = Joi.object({
-    title: Joi.string().min(3).max(255).required().messages({
-        "string.empty": "Title is required",
-        "string.min": "Title must contain at least {#limit} characters",
+
+    newStatus: Joi.string().valid(...statusValues).required().messages({
+        "any.only": 'The newStatus must be one of these choices: ' + statusValues.join(', '),
+        "any.required": "newStatus is required",
     }),
-    property_type_id: Joi.number().integer().required().messages({
-        "number.base": "Property type is required",
-        "any.required": "Property type is required",
+    currentStatus: Joi.string().valid(...statusValues).required().messages({
+        "any.only": 'The currentStatus must be one of these choices: ' + statusValues.join(', '),
+        "any.required": "currentStatus is required",
     }),
-    city_id: Joi.number().integer().required().messages({
-        "number.base": "City is required",
-        "any.required": "City is required",
+    userId: Joi.number().integer().required().messages({
+        "number.base": "userId is required",
+        "any.required": "userId is required",
     }),
 }).options({ stripUnknown: true });
