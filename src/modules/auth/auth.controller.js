@@ -402,3 +402,28 @@ export const getCurrentUser = async (req, res) => {
     return handleServerError(res, err);
   }
 };
+
+export const updateCurrentUser = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id);
+
+    if (!user) return res.status(404).json(notFound("User not found"));
+
+    const { phone, ...fields } = req.body;
+
+    if (phone !== undefined && phone !== null) {
+      const existing = await User.findOne({ where: { phone }, attributes: ["id"] });
+      if (existing) return res.status(409).json(conflict("That phone number is already taken"));
+    }
+
+    if (phone !== undefined) user.phone = phone;
+
+    user.set(fields);
+
+    await user.save();
+
+    return res.status(200).json(success("Profile updated successfully", user));
+  } catch (err) {
+    return handleServerError(res, err);
+  }
+};

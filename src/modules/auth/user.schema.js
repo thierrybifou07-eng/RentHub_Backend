@@ -45,6 +45,43 @@ export const registerSchema = Joi.object({
     }),
 }).options({ stripUnknown: true });
 
+// ===== Update current user profile (authenticated) =====
+
+export const updateProfileSchema = Joi.object({
+    firstname: Joi.string().min(3).max(150).optional().messages({
+        "string.empty": "First name is required",
+        "string.base": "First name must be a string",
+        "string.min": "First name must contain at least {#limit} characters",
+        "string.max": "First name cannot exceed {#limit} characters",
+    }),
+    lastname: Joi.string().min(3).max(150).optional().messages({
+        "string.empty": "Last name is required",
+        "string.base": "Last name must be a string",
+        "string.min": "Last name must contain at least {#limit} characters",
+        "string.max": "Last name cannot exceed {#limit} characters",
+    }),
+    phone: Joi.string().min(10).max(20).allow(null).empty("").optional().messages({
+        "string.base": "Phone must be a string",
+        "string.min": "Phone must contain at least {#limit} characters",
+        "string.max": "Phone cannot exceed {#limit} characters",
+    }),
+    birth_date: Joi.date().iso().allow(null).optional().messages({
+        "date.base": "Birth date must be a valid date",
+        "date.iso": "Birth date must be a valid ISO date",
+    }),
+    gender: Joi.string().valid("M", "F").allow(null).optional().messages({
+        "any.only": "Gender must be either 'M' or 'F'",
+    }),
+    address: Joi.string().max(255).allow(null).empty("").optional().messages({
+        "string.base": "Address must be a string",
+        "string.max": "Address cannot exceed {#limit} characters",
+    }),
+    city_id: Joi.number().integer().allow(null).optional().messages({
+        "number.base": "City must be a number",
+        "number.integer": "City must be a number",
+    }),
+}).options({ stripUnknown: true });
+
 // ===== Update an existing user (partial update) =====
 
 export const updateUserSchema = Joi.object({
