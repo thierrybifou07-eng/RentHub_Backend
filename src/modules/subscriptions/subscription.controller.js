@@ -189,6 +189,8 @@ export const activateSubscription = async (req, res) => {
                     planLabel: plan.label,
                     endDate: endDate.toISOString().slice(0, 10),
                     appUrl: process.env.APP_URL || "https://renthub.fr",
+                    heading: "Abonnement activé"
+
                 });
             }
         } catch (e) {
@@ -226,6 +228,7 @@ export const rejectSubscription = async (req, res) => {
                     planLabel: subscription.SubscriptionPlan.label,
                     reason: req.body.adminNote || null,
                     appUrl: process.env.APP_URL || "https://renthub.fr",
+                    heading: "Abonnement non validé"
                 });
             }
         } catch (e) {

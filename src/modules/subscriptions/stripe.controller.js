@@ -107,6 +107,8 @@ export const confirmPayment = async (req, res) => {
                     planLabel: plan.label,
                     endDate: endDate.toISOString().slice(0, 10),
                     appUrl: process.env.APP_URL || "https://renthub.fr",
+                    heading: "Abonnement activé"
+
                 });
             }
         } catch (e) {

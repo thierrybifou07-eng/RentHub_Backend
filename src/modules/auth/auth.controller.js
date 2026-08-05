@@ -66,7 +66,7 @@ export const register = async (req, res) => {
       await Otp.upsert(otp);
 
       await sendTemplateEmail(body.email, "Inscription réussie", "welcome", {
-        heading: "Bienvenue sur RentHub !",
+        heading: "Inscription réussie",
         username: `${body.lastname} ${body.firstname}`,
         validatedCode: code,
         countMinutes,
@@ -231,7 +231,7 @@ export const forgotPassword = async (req, res) => {
     try {
       await sendTemplateEmail(email, "Réinitialisation du Mot de Passe", "resetPassword", {
         countMinutes,
-        heading: 'Code de verification',
+        heading:"Réinitialisation du Mot de Passe",
         resetCode: code,
       });
     } catch (e) {
@@ -320,7 +320,7 @@ export const verifyEmail = async (req, res) => {
     try {
       await sendTemplateEmail(user.email, "Verification de l'émail réussie", "congratulation", {
         username: `${user.lastname} ${user.firstname}`,
-        heading: 'Felicitation !'
+        heading: "Verification de l'émail réussie"
       });
       emailSent = true
     } catch (e) {
@@ -355,7 +355,7 @@ export const regenerateCode = async (req, res) => {
         await Otp.create(otp);
 
         await sendTemplateEmail(user.email, "Demande de nouveau code", "regenerateCode", {
-          heading: "Veuillez utiliser ce nouveau code",
+          heading: "Demande de nouveau code",
           validatedCode: code,
           countMinutes,
         });

@@ -70,6 +70,8 @@ export const startConversation = async (req, res) => {
                     tenantName: `${tenant.lastname} ${tenant.firstname}`,
                     announcementTitle: announcement.title,
                     messagePreview: content.length > 200 ? content.substring(0, 200) + "..." : content,
+                    heading: "Nouveau message pour votre annonce"
+
                 });
             }
         } catch (e) {

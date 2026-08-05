@@ -192,6 +192,8 @@ export const takeActionOnReport = async (req, res) => {
                     username: `${owner.lastname} ${owner.firstname}`,
                     announcementTitle: report.Announcement.title,
                     reason: adminNote,
+                    heading: "Annonce supprimée suite à un signalement"
+
                 });
             }
         } catch (e) {

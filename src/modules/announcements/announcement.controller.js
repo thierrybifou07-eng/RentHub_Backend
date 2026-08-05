@@ -39,8 +39,8 @@ const announcementsInclude = [
 
 export const getAll = async (req, res) => {
     try {
-        console.log('Here is the req in this request////////////////////////////////////////////////////////////////////////////////////////////////////////',req.query);
-        
+        console.log('Here is the req in this request////////////////////////////////////////////////////////////////////////////////////////////////////////', req.query);
+
         const { minPrice, maxPrice, property_type_id, city_id, furnished, minRooms, maxRooms, page, limit, sort } = req.query;
 
         const where = { status_id: ANNOUNCEMENT_STATUS.ACTIVE };
@@ -207,9 +207,11 @@ export const create = async (req, res) => {
         try {
             const owner = await User.findByPk(req.user.id, { attributes: ["email", "lastname", "firstname"] });
             if (owner) {
-                await sendTemplateEmail(owner.email, "Annonce soumise avec succÃ¨s", "announcementCreated", {
+                await sendTemplateEmail(owner.email, "Annonce soumise avec succès", "announcementCreated", {
                     username: `${owner.lastname} ${owner.firstname}`,
                     announcementTitle: announcement.title,
+                    heading: "Annonce soumise avec succès"
+
                 });
             }
         } catch (e) {
@@ -297,9 +299,10 @@ export const approve = async (req, res) => {
         try {
             const owner = await User.findByPk(announcement.user_id, { attributes: ["email", "lastname", "firstname"] });
             if (owner) {
-                await sendTemplateEmail(owner.email, "Annonce approuvÃ©e", "announcementApproved", {
+                await sendTemplateEmail(owner.email, "Annonce approuvée", "announcementApproved", {
                     username: `${owner.lastname} ${owner.firstname}`,
                     announcementTitle: announcement.title,
+                    heading: "Annonce approuvée"
                 });
             }
         } catch (e) {
@@ -332,7 +335,8 @@ export const reject = async (req, res) => {
                 await sendTemplateEmail(owner.email, "Annonce non retenue", "announcementRejected", {
                     username: `${owner.lastname} ${owner.firstname}`,
                     announcementTitle: announcement.title,
-                    reason: req.body.reason || "Votre annonce ne respecte pas nos conditions gÃ©nÃ©rales d'utilisation.",
+                    reason: req.body.reason || "Votre annonce ne respecte pas nos conditions générales d'utilisation.",
+                    heading: "Annonce non retenue",
                 });
             }
         } catch (e) {
