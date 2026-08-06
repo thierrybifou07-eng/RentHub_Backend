@@ -11,6 +11,7 @@ import ANNOUNCEMENT_STATUS from "../announcements/announcementStatus.js";
 import { ROLE_IDS, ROLE_NAMES } from "../../../config/auth/app.js";
 import USER_STATUS from "../auth/userStatus.js";
 import { badRequest, fail, forbidden, notFound, paginated, success, unauthorized, updated, validationFail } from "../../shared/helpers/response.helpers.js";
+import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
 
 const handleServerError = (res, err) => {
     console.error(err);
@@ -160,7 +161,19 @@ export const manageAnnouncement = async (req, res) => {
         announcement.status_id = newStatusId;
         await announcement.save();
 
-        return res.status(200).json(updated("Announcement status updated successfully", announcement));
+        let emailSent = false;
+        try {
+            const user = await User.findByPk(announcement.user_id);
+            await sendTemplateEmail(user.email, "Votre annonce à été acceptée", "announcementApproved", {
+                username: `${user.lastname} ${user.firstname}`,
+                heading: "Votre annonce à été acceptée",
+                announcementTitle: announcement.title,
+            });
+            emailSent = true
+        } catch (e) {
+            console.error(e.message);
+        }
+        return res.status(200).json({ ...updated("Announcement status updated successfully", announcement), emailSent });
     } catch (err) {
         return handleServerError(res, err);
     }
@@ -270,7 +283,18 @@ export const verifyUserAccount = async (req, res) => {
         user.verified_at = new Date();
         await user.save();
 
-        return res.status(200).json(updated("User account verified successfully", user));
+        let emailSent = false;
+        try {
+            await sendTemplateEmail(user.email, "Votre comte à été verifier avec succès", "congratulation _verified", {
+                username: `${user.lastname} ${user.firstname}`,
+                heading: "Verification du compte réussie"
+            });
+            emailSent = true
+        } catch (e) {
+            console.error(e.message);
+        }
+
+        return res.status(200).json({ ...updated("User account verified successfully", user), emailSent });
     } catch (err) {
         return handleServerError(res, err);
     }
