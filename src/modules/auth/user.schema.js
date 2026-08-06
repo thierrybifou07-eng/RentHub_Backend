@@ -206,3 +206,30 @@ export const validatedEmailSchema =
             "string.email": "Email must be a valid email address",
         }),
     }).options({ stripUnknown: true });
+
+// ===== Change password (authenticated) =====
+
+export const changePasswordSchema = Joi.object({
+    currentPassword: Joi.string().required().messages({
+        "string.empty": "Current password is required",
+        "any.required": "Current password is required",
+    }),
+    newPassword: Joi.string().regex(passwordRegex).required().messages({
+        "string.empty": "New password is required",
+        "string.base": "New password must be a string",
+        "string.pattern.base": passwordPatternMessage,
+    }),
+    confirmNewPassword: Joi.string().valid(Joi.ref("newPassword")).required().messages({
+        "string.empty": "Password confirmation is required",
+        "any.only": "New password and confirmation must match",
+    }),
+}).options({ stripUnknown: true });
+
+// ===== Delete account (authenticated) =====
+
+export const deleteAccountSchema = Joi.object({
+    password: Joi.string().required().messages({
+        "string.empty": "Password is required",
+        "any.required": "Password is required",
+    }),
+}).options({ stripUnknown: true });

@@ -1,9 +1,10 @@
-﻿import { Op, Sequelize } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 import { Announcement, Media, MediaType, City, PropertyType, User } from "../../database/models/index.js";
 import ANNOUNCEMENT_STATUS from "./announcementStatus.js";
 import MEDIA_TYPE_CODES from "../media/mediaType.js";
 import { verifyToken } from "../auth/jwt.js";
 import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
+import { toPublicUploadUrl } from "../../shared/helpers/helpers.js";
 import {
     success,
     created,
@@ -11,6 +12,8 @@ import {
     deleted,
     notFound,
     paginated,
+    badRequest,
+    forbidden,
 } from "../../shared/helpers/response.helpers.js";
 
 const handleServerError = (res, err) => {
@@ -39,9 +42,7 @@ const announcementsInclude = [
 
 export const getAll = async (req, res) => {
     try {
-        console.log('Here is the req in this request////////////////////////////////////////////////////////////////////////////////////////////////////////', req.query);
-
-        const { minPrice, maxPrice, property_type_id, city_id, furnished, minRooms, maxRooms, page, limit, sort } = req.query;
+        const { minPrice, maxPrice, property_type_id, city_id, furnished, minRooms, maxRooms, search, page, limit, sort } = req.query;
 
         const where = { status_id: ANNOUNCEMENT_STATUS.ACTIVE };
 
@@ -57,6 +58,9 @@ export const getAll = async (req, res) => {
             where.rooms = {};
             if (minRooms) where.rooms[Op.gte] = minRooms;
             if (maxRooms) where.rooms[Op.lte] = maxRooms;
+        }
+        if (search) {
+            where.title = { [Op.like]: `%${search}%` };
         }
 
         const priorityOrder = Sequelize.literal(`(
@@ -149,26 +153,30 @@ export const getById = async (req, res) => {
 
 export const getMyAnnouncements = async (req, res) => {
     try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 20;
-        const offset = (page - 1) * limit;
+        const { page, limit, status_id } = req.query;
+        const pageNum = Number(page) || 1;
+        const limitNum = Number(limit) || 20;
+        const offset = (pageNum - 1) * limitNum;
+
+        const where = { user_id: req.user.id };
+        if (status_id) where.status_id = Number(status_id);
 
         const { count, rows } = await Announcement.findAndCountAll({
-            where: { user_id: req.user.id },
+            where,
             include: announcementsInclude,
             attributes: { include: [favoritesCountAttr] },
             order: [["createdAt", "DESC"]],
-            limit,
+            limit: limitNum,
             offset,
             distinct: true,
             paranoid: false,
         });
 
         return res.status(200).json(paginated("Announcements retrieved successfully", rows, {
-            page,
-            limit,
+            page: pageNum,
+            limit: limitNum,
             total: count,
-            totalPages: Math.ceil(count / limit),
+            totalPages: Math.ceil(count / limitNum),
         }));
     } catch (err) {
         return handleServerError(res, err);
@@ -189,7 +197,7 @@ export const create = async (req, res) => {
             const mediaType = await MediaType.findOne({ where: { code: MEDIA_TYPE_CODES.ANNOUNCEMENT_IMAGE } });
             const mediaItems = req.files.map((file, index) => ({
                 media_type_id: mediaType.id,
-                url: file.path.replace(/\\/g, "/"),
+                url: toPublicUploadUrl(file.path),
                 filename: file.originalname,
                 mime_type: file.mimetype,
                 file_size: file.size,
@@ -211,7 +219,6 @@ export const create = async (req, res) => {
                     username: `${owner.lastname} ${owner.firstname}`,
                     announcementTitle: announcement.title,
                     heading: "Annonce soumise avec succès"
-
                 });
             }
         } catch (e) {
@@ -228,7 +235,19 @@ export const update = async (req, res) => {
     try {
         const announcement = req.announcement;
 
-        await Announcement.update(req.body, { where: { id: announcement.id } });
+        // Rejected announcements must be resubmitted, not edited directly
+        if (announcement.status_id === ANNOUNCEMENT_STATUS.REJECTED) {
+            return res.status(400).json(badRequest("Rejected announcements cannot be edited. Please resubmit instead."));
+        }
+
+        const updateData = { ...req.body };
+
+        // If the announcement was ACTIVE, put it back under review after edits
+        if (announcement.status_id === ANNOUNCEMENT_STATUS.ACTIVE) {
+            updateData.status_id = ANNOUNCEMENT_STATUS.PENDING_REVIEW;
+        }
+
+        await Announcement.update(updateData, { where: { id: announcement.id } });
 
         const result = await Announcement.findByPk(announcement.id, {
             include: announcementsInclude,
@@ -249,6 +268,64 @@ export const delete_ = async (req, res) => {
         await Announcement.destroy({ where: { id: announcement.id } });
 
         return res.status(200).json(deleted("Announcement deleted successfully"));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};
+
+/**
+ * Owner archives their own ACTIVE or RENTED announcement.
+ * An archived announcement is hidden from public listings.
+ */
+export const archiveAnnouncement = async (req, res) => {
+    try {
+        const announcement = req.announcement;
+
+        const archivableStatuses = [ANNOUNCEMENT_STATUS.ACTIVE, ANNOUNCEMENT_STATUS.RENTED];
+        if (!archivableStatuses.includes(announcement.status_id)) {
+            return res.status(400).json(badRequest("Only active or rented announcements can be archived"));
+        }
+
+        await Announcement.update(
+            { status_id: ANNOUNCEMENT_STATUS.ARCHIVED },
+            { where: { id: announcement.id } }
+        );
+
+        const result = await Announcement.findByPk(announcement.id, {
+            include: announcementsInclude,
+            paranoid: false,
+        });
+
+        return res.status(200).json(updated("Announcement archived successfully", result));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};
+
+/**
+ * Owner resubmits an ARCHIVED or REJECTED announcement for review.
+ * Puts the announcement back in PENDING_REVIEW.
+ */
+export const resubmitAnnouncement = async (req, res) => {
+    try {
+        const announcement = req.announcement;
+
+        const resubmittableStatuses = [ANNOUNCEMENT_STATUS.ARCHIVED, ANNOUNCEMENT_STATUS.REJECTED];
+        if (!resubmittableStatuses.includes(announcement.status_id)) {
+            return res.status(400).json(badRequest("Only archived or rejected announcements can be resubmitted"));
+        }
+
+        await Announcement.update(
+            { status_id: ANNOUNCEMENT_STATUS.PENDING_REVIEW },
+            { where: { id: announcement.id } }
+        );
+
+        const result = await Announcement.findByPk(announcement.id, {
+            include: announcementsInclude,
+            paranoid: false,
+        });
+
+        return res.status(200).json(updated("Announcement resubmitted successfully", result));
     } catch (err) {
         return handleServerError(res, err);
     }
@@ -291,7 +368,7 @@ export const approve = async (req, res) => {
         if (!announcement) return res.status(404).json(notFound("Announcement not found"));
 
         if (announcement.status_id !== ANNOUNCEMENT_STATUS.PENDING_REVIEW) {
-            return res.status(400).json({ status: "fail", message: "Announcement is not in pending review status" });
+            return res.status(400).json(badRequest("Announcement is not in pending review status"));
         }
 
         await announcement.update({ status_id: ANNOUNCEMENT_STATUS.ACTIVE });
@@ -324,7 +401,7 @@ export const reject = async (req, res) => {
         if (!announcement) return res.status(404).json(notFound("Announcement not found"));
 
         if (announcement.status_id !== ANNOUNCEMENT_STATUS.PENDING_REVIEW) {
-            return res.status(400).json({ status: "fail", message: "Announcement is not in pending review status" });
+            return res.status(400).json(badRequest("Announcement is not in pending review status"));
         }
 
         await announcement.update({ status_id: ANNOUNCEMENT_STATUS.REJECTED });
@@ -348,4 +425,3 @@ export const reject = async (req, res) => {
         return handleServerError(res, err);
     }
 };
-

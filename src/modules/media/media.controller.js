@@ -1,6 +1,7 @@
 import { existsSync, unlinkSync } from "node:fs";
 import { Media, MediaType, Announcement } from "../../database/models/index.js";
 import MEDIA_TYPE_CODES from "./mediaType.js";
+import { toPublicUploadUrl } from "../../shared/helpers/helpers.js";
 import {
     success,
     created,
@@ -44,7 +45,7 @@ export const uploadAvatar = async (req, res) => {
 
         const media = await Media.create({
             media_type_id: mediaType.id,
-            url: req.file.path.replace(/\\/g, "/"),
+            url: toPublicUploadUrl(req.file.path),
             filename: req.file.originalname,
             mime_type: req.file.mimetype,
             file_size: req.file.size,
@@ -95,7 +96,7 @@ export const uploadAnnouncementImages = async (req, res) => {
 
         const mediaItems = req.files.map((file, index) => ({
             media_type_id: mediaType.id,
-            url: file.path.replace(/\\/g, "/"),
+            url: toPublicUploadUrl(file.path),
             filename: file.originalname,
             mime_type: file.mimetype,
             file_size: file.size,
@@ -124,7 +125,7 @@ export const uploadAnnouncementVideos = async (req, res) => {
 
         const mediaItems = req.files.map((file) => ({
             media_type_id: mediaType.id,
-            url: file.path.replace(/\\/g, "/"),
+            url: toPublicUploadUrl(file.path),
             filename: file.originalname,
             mime_type: file.mimetype,
             file_size: file.size,

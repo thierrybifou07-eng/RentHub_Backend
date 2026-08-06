@@ -7,6 +7,7 @@ import { ROLE_IDS } from "../../../config/auth/app.js";
 import {
   badRequest,
   conflict,
+  deleted,
   fail,
   forbidden,
   handleServerError,
@@ -14,6 +15,7 @@ import {
   registered,
   success,
   unauthorized,
+  updated,
   validationFail,
   verified,
 } from "../../shared/helpers/response.helpers.js";
@@ -427,3 +429,45 @@ export const updateCurrentUser = async (req, res) => {
     return handleServerError(res, err);
   }
 };
+
+export const changePassword = async (req, res) => {
+  try {
+    const user = await User.scope("withPassword").findByPk(req.user.id);
+
+    if (!user) return res.status(404).json(notFound("User not found"));
+
+    const { currentPassword, newPassword } = req.body;
+
+    const passwordMatch = await verifyPassword(currentPassword, user.password);
+    if (!passwordMatch) return res.status(401).json(unauthorized("Invalid current password"));
+
+    user.password = newPassword;
+    await user.save(); // beforeUpdate hook will hash the new password
+
+    return res.status(200).json(updated("Password changed successfully"));
+  } catch (err) {
+    return handleServerError(res, err);
+  }
+};
+
+export const deleteAccount = async (req, res) => {
+  try {
+    const user = await User.scope("withPassword").findByPk(req.user.id);
+
+    if (!user) return res.status(404).json(notFound("User not found"));
+
+    const passwordMatch = await verifyPassword(req.body.password, user.password);
+    if (!passwordMatch) return res.status(401).json(unauthorized("Invalid password"));
+
+    // Revoke all active sessions first
+    await Session.destroy({ where: { user_id: user.id } });
+
+    // Soft delete (paranoid: true → sets deleted_at)
+    await user.destroy();
+
+    return res.status(200).json(deleted("Account deleted successfully"));
+  } catch (err) {
+    return handleServerError(res, err);
+  }
+};
+

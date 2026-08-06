@@ -1,4 +1,4 @@
-﻿import { Op, fn, col } from "sequelize";
+import { Op, fn, col } from "sequelize";
 import {
     User,
     Announcement,
@@ -10,7 +10,7 @@ import {
 import ANNOUNCEMENT_STATUS from "../announcements/announcementStatus.js";
 import { ROLE_IDS, ROLE_NAMES } from "../../../config/auth/app.js";
 import USER_STATUS from "../auth/userStatus.js";
-import { fail, forbidden, notFound, success, unauthorized, updated, validationFail } from "../../shared/helpers/response.helpers.js";
+import { badRequest, fail, forbidden, notFound, paginated, success, unauthorized, updated, validationFail } from "../../shared/helpers/response.helpers.js";
 
 const handleServerError = (res, err) => {
     console.error(err);
@@ -145,8 +145,25 @@ export const getRecentActivity = async (req, res) => {
 };
 
 export const manageAnnouncement = async (req, res) => {
-    console.log("Hello world manageAnnouncement");
+    try {
+        const announcement = await Announcement.findByPk(req.params.id, { paranoid: false });
 
+        if (!announcement) return res.status(404).json(notFound("Announcement not found"));
+
+        const { newStatus } = req.body;
+        const newStatusId = ANNOUNCEMENT_STATUS[newStatus];
+
+        if (newStatusId === announcement.status_id) {
+            return res.status(400).json(badRequest("Announcement already has this status"));
+        }
+
+        announcement.status_id = newStatusId;
+        await announcement.save();
+
+        return res.status(200).json(updated("Announcement status updated successfully", announcement));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
 }
 
 export const manageUserRole = async (req, res) => {
@@ -235,3 +252,75 @@ export const manageUserStatus = async (req, res) => {
     }
 
 }
+
+export const verifyUserAccount = async (req, res) => {
+    try {
+        const user = await User.findByPk(req.params.id);
+
+        if (!user) return res.status(404).json(notFound("User not found"));
+
+        if (!user.email_verified_at) {
+            return res.status(400).json(badRequest("User email is not verified yet"));
+        }
+
+        if (user.verified_at !== null) {
+            return res.status(400).json(badRequest("User account is already verified"));
+        }
+
+        user.verified_at = new Date();
+        await user.save();
+
+        return res.status(200).json(updated("User account verified successfully", user));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};
+
+export const getUsers = async (req, res) => {
+    try {
+        const { page, limit, search, role_id, user_status_id } = req.query;
+        const offset = (page - 1) * limit;
+
+        const where = {};
+
+        if (search) {
+            where[Op.or] = [
+                { firstname: { [Op.like]: `%${search}%` } },
+                { lastname: { [Op.like]: `%${search}%` } },
+                { email: { [Op.like]: `%${search}%` } },
+            ];
+        }
+
+        if (role_id) where.role_id = role_id;
+        if (user_status_id) where.user_status_id = user_status_id;
+
+        const { count, rows } = await User.findAndCountAll({
+            where,
+            limit: Number(limit),
+            offset: Number(offset),
+            order: [["createdAt", "DESC"]],
+            distinct: true,
+        });
+
+        return res.status(200).json(paginated("Users retrieved successfully", rows, {
+            page: Number(page),
+            limit: Number(limit),
+            total: count,
+            totalPages: Math.ceil(count / limit),
+        }));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};
+
+export const getUserById = async (req, res) => {
+    try {
+        const user = await User.findByPk(req.params.id);
+
+        if (!user) return res.status(404).json(notFound("User not found"));
+
+        return res.status(200).json(success("User retrieved successfully", user));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};

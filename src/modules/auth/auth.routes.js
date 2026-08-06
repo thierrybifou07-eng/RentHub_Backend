@@ -10,11 +10,23 @@ import {
     regenerateCode,
     logout,
     logoutAll,
-    updateCurrentUser
+    updateCurrentUser,
+    changePassword,
+    deleteAccount,
 } from "./auth.controller.js";
 import { authenticate } from "./auth.middleware.js";
 import validate from "../../shared/middlewares/validate.js";
-import { loginSchema, registerSchema, resetPasswordSchema, refreshTokenSchema, validatedEmailSchema, verifiedEmailSchema, updateProfileSchema } from "./user.schema.js";
+import {
+    loginSchema,
+    registerSchema,
+    resetPasswordSchema,
+    refreshTokenSchema,
+    validatedEmailSchema,
+    verifiedEmailSchema,
+    updateProfileSchema,
+    changePasswordSchema,
+    deleteAccountSchema,
+} from "./user.schema.js";
 const authRoutes = express.Router();
 
 authRoutes.post("/register", validate(registerSchema), register)
@@ -28,5 +40,7 @@ authRoutes.post("/verify-email", authenticate, validate(verifiedEmailSchema()), 
 authRoutes.post("/regenerate-code", authenticate, regenerateCode)
 authRoutes.get("/me", authenticate, getCurrentUser)
 authRoutes.patch("/me", authenticate, validate(updateProfileSchema), updateCurrentUser)
+authRoutes.patch("/me/password", authenticate, validate(changePasswordSchema), changePassword)
+authRoutes.delete("/me", authenticate, validate(deleteAccountSchema), deleteAccount)
 
 export default authRoutes;

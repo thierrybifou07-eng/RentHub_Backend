@@ -49,7 +49,26 @@ export const announcementFilterSchema = Joi.object({
     furnished: Joi.boolean().optional(),
     minRooms: Joi.number().integer().min(0).optional(),
     maxRooms: Joi.number().integer().min(0).optional(),
+    search: Joi.string().max(255).optional().messages({
+        "string.max": "Search term cannot exceed {#limit} characters",
+    }),
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(20),
     sort: Joi.string().valid("price_asc", "price_desc", "newest", "oldest").default("newest"),
+}).options({ stripUnknown: true });
+
+// Filter for GET /announcements/me — owner's own announcements
+export const myAnnouncementsFilterSchema = Joi.object({
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(20),
+    status_id: Joi.number().integer().optional().messages({
+        "number.base": "status_id must be a number",
+    }),
+}).options({ stripUnknown: true });
+
+// Body schema for rejecting an announcement (reason is optional)
+export const rejectAnnouncementSchema = Joi.object({
+    reason: Joi.string().max(500).allow("", null).optional().messages({
+        "string.max": "Reason cannot exceed {#limit} characters",
+    }),
 }).options({ stripUnknown: true });

@@ -110,5 +110,22 @@ export function removeAccents(str) {
         .replace(/[\u0300-\u036f]/g, "");   // Supprime les marques diacritiques
 }
 
-
-
+/**
+ * Converts an absolute disk path returned by multer into a public URL path
+ * that the static file server understands.
+ *
+ * multer writes to: /abs/path/to/project/public/uploads/ANNOUNCEMENT_IMAGE/14/xxx.png
+ * server serves:    app.use("/uploads", express.static(".../public/uploads"))
+ * result:           /uploads/ANNOUNCEMENT_IMAGE/14/xxx.png
+ *
+ * @param {string} absolutePath - Absolute path returned by multer (file.path)
+ * @returns {string} Public URL path starting with /uploads/
+ */
+export function toPublicUploadUrl(absolutePath) {
+    const normalized = absolutePath.replace(/\\/g, "/");
+    const marker = "public/uploads/";
+    const idx = normalized.indexOf(marker);
+    if (idx === -1) return normalized; // Fallback: return as-is if pattern not found
+    // Strip "public/" prefix so the result is "/uploads/..."
+    return "/" + normalized.substring(idx + "public/".length);
+}

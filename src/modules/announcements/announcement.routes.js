@@ -6,6 +6,8 @@ import {
     create,
     update,
     delete_,
+    archiveAnnouncement,
+    resubmitAnnouncement,
     getPending,
     approve,
     reject,
@@ -20,6 +22,8 @@ import {
     createAnnouncementSchema,
     updateAnnouncementSchema,
     announcementFilterSchema,
+    myAnnouncementsFilterSchema,
+    rejectAnnouncementSchema,
 } from "./announcement.schema.js";
 import { isAdmin } from "../admin/admin.middleware.js";
 
@@ -39,14 +43,27 @@ const mediaUploadMiddleware = async (req, res, next) => {
     });
 };
 
+// Public listing with filters + search
 router.get("/", validate(announcementFilterSchema, "query"), getAll);
-router.get("/me", authenticate, getMyAnnouncements);
+
+// Owner's own announcements (filterable by status_id)
+router.get("/me", authenticate, validate(myAnnouncementsFilterSchema, "query"), getMyAnnouncements);
+
+// Admin — pending queue & moderation
 router.get("/admin/pending", authenticate, isAdmin, getPending);
 router.put("/admin/:id/approve", authenticate, isAdmin, parseIdParam, approve);
-router.put("/admin/:id/reject", authenticate, isAdmin, parseIdParam, reject);
+router.put("/admin/:id/reject", authenticate, isAdmin, parseIdParam, validate(rejectAnnouncementSchema), reject);
+
+// Public detail
 router.get("/:id", parseIdParam, getById);
+
+// Owner CRUD
 router.post("/", authenticate, mediaUploadMiddleware, validate(createAnnouncementSchema), create);
 router.put("/:id", authenticate, parseIdParam, isOwner, validate(updateAnnouncementSchema), update);
 router.delete("/:id", authenticate, parseIdParam, isOwner, delete_);
+
+// Owner lifecycle actions
+router.patch("/:id/archive", authenticate, parseIdParam, isOwner, archiveAnnouncement);
+router.patch("/:id/resubmit", authenticate, parseIdParam, isOwner, resubmitAnnouncement);
 
 export default router;

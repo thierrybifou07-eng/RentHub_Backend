@@ -8,6 +8,8 @@ import { corsOptions } from "../config/corsOptions.js";
 import { loginLimiter, forgotPasswordLimiter, registerLimiter } from "../config/rateLimiter.js";
 import { handleWebhook } from "./modules/subscriptions/stripe.webhook.js";
 import "./database/setupAssociations.js";
+import errorHandler from "./shared/middlewares/errorHandler.js";
+import { notFound } from "./shared/helpers/response.helpers.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -26,7 +28,16 @@ app.use("/api/v1/auth/register", registerLimiter);
 
 app.use("/api/v1", apiRouter);
 
+// 404 — route not found
+app.use((req, res) => {
+    return res.status(404).json(notFound(`Cannot ${req.method} ${req.originalUrl}`));
+});
+
+// Global error handler (must be last)
+app.use(errorHandler);
+
 const port = process.env.PORT;
 app.listen(port, () => {
     console.log(`Le serveur est ouvert sur le port http://localhost:${port}`);
 });
+
