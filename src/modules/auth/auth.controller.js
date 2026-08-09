@@ -40,14 +40,14 @@ const toSafeUser = (user) => ({
 export const register = async (req, res) => {
   try {
     const checkExistingUser = await User.findOne({
-      where: { [Op.or]: [{ email: req.body.email }, { phone: req.body.phone }] },
-      attributes: ["id", "email", "phone"],
+      where:/*  { [Op.or]: [ */{ email: req.body.email /* }, { phone: req.body.phone }] */ },
+      attributes: ["id", "email"/* , "phone" */],
     });
 
     if (checkExistingUser) {
       if (checkExistingUser.email === req.body.email) return res.status(409).json(conflict("That Email is already taken"));
-      if (checkExistingUser.phone === req.body.phone) return res.status(409).json(conflict("That phone number is already taken"));
-    }
+/*       if (checkExistingUser.phone === req.body.phone) return res.status(409).json(conflict("That phone number is already taken"));
+ */    }
 
     const body = {
       ...req.body,

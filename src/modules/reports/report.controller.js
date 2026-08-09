@@ -39,7 +39,7 @@ export const createReport = async (req, res) => {
             where: {
                 announcement_id: announcementId,
                 reporter_id: req.user.id,
-                created_at: { [Op.gte]: since },
+                createdAt: { [Op.gte]: since },
             },
         });
 

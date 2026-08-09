@@ -13,6 +13,7 @@ const seedUsers = async () => {
 
   const roleAdmin = await Role.findOne({ where: { code: "ROLE_ADMIN" } });
   const roleUser = await Role.findOne({ where: { code: "ROLE_USER" } });
+  const roleTenant = await Role.findOne({ where: { code: "ROLE_TENANT" } });
   const statusActive = await UserStatus.findOne({ where: { code: "ACTIVE" } });
   const cities = await City.findAll();
 
