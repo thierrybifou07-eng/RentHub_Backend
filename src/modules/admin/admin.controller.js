@@ -113,7 +113,7 @@ export const getRecentActivity = async (req, res) => {
         const [latestAnnouncements, latestReports, latestSubscriptions] = await Promise.all([
             Announcement.findAll({
                 where: { status_id: ANNOUNCEMENT_STATUS.PENDING_REVIEW },
-                include: [{ model: User, as: "user", attributes: ["id", "firstname", "lastname", "email"] }],
+                include: [{ model: User, as: "owner", attributes: ["id", "firstname", "lastname", "email"] }],
                 order: [["createdAt", "DESC"]],
                 limit: 10,
                 paranoid: false,

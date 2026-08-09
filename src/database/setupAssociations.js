@@ -52,8 +52,9 @@ const setupAssociations = () => {
   City.hasMany(Announcement, { foreignKey: "city_id" });
   Announcement.belongsTo(City, { foreignKey: "city_id" });
 
-  User.hasMany(Announcement, { foreignKey: "user_id" });
-  Announcement.belongsTo(User, { foreignKey: "user_id" });
+  // NOTE: as:"owner" is required to disambiguate from the belongsToMany (via Favorite)
+  User.hasMany(Announcement, { foreignKey: "user_id", as: "announcements" });
+  Announcement.belongsTo(User, { foreignKey: "user_id", as: "owner" });
 
   MediaType.hasMany(Media, { foreignKey: "media_type_id" });
   Media.belongsTo(MediaType, { foreignKey: "media_type_id" });
