@@ -192,10 +192,9 @@ export const manageUserRole = async (req, res) => {
     }
     try {
         const { id } = req.user
-        const { userId, currentRole, newRole
+        const { currentRole, newRole
         } = req.body
-
-
+        const { userId } = req.params
         const currentRoleId = Number(getKeyByValue(ROLE_NAMES, currentRole))
         const newRoleId = Number(getKeyByValue(ROLE_NAMES, newRole))
 
@@ -268,7 +267,7 @@ export const manageUserStatus = async (req, res) => {
 
 export const verifyUserAccount = async (req, res) => {
     try {
-        const user = await User.findByPk(req.params.id);
+        const user = await User.findByPk(req.params.userId );
 
         if (!user) return res.status(404).json(notFound("User not found"));
 

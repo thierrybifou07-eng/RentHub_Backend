@@ -1,5 +1,5 @@
 export const parseIdParam = (req, res, next) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id || req.params.userId);
     if (isNaN(id)) res.status(400).send({ error: 'Invalid ID parameter' });
 
     else {

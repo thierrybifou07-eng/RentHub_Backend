@@ -10,6 +10,8 @@ import reportRoutes from "./modules/reports/report.routes.js";
 import subscriptionRoutes from "./modules/subscriptions/subscription.routes.js";
 import adminRoutes from "./modules/admin/admin.routes.js";
 
+
+import emailRoute from "../dev-emails/devMail.route.js"
 const router = Router();
 
 router.use("/", catalogRoutes)
@@ -22,5 +24,6 @@ router.use('/conversations', conversationRoutes)
 router.use('/reports', reportRoutes)
 router.use('/subscriptions', subscriptionRoutes)
 router.use('/admin', adminRoutes)
-
+//Pour le developpement
+router.use('/dev', emailRoute)
 export default router;

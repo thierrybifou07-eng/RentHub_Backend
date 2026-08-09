@@ -37,7 +37,7 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 const port = process.env.PORT;
-app.listen(port, () => {
+app.listen(port, process.env.HOST,() => {
     console.log(`Le serveur est ouvert sur le port http://localhost:${port}`);
 });
 

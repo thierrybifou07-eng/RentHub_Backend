@@ -34,9 +34,9 @@ router.get("/recent-activity", authenticate, isAdmin, existence, getRecentActivi
 router.patch("/manage-announcements-status/:id", authenticate, isAdmin, existence, parseIdParam, validate(manageAnnouncementStatusSchema), manageAnnouncement);
 
 // User management
-router.patch("/manage-user-status", authenticate, isAdmin, existence, validate(updateUserStatusSchema), manageUserStatus);
-router.patch("/manage-user-role", authenticate, isAdmin, existence, validate(updateUserRoleSchema), manageUserRole);
-router.patch("/verify-user/:id", authenticate, isAdmin, existence, parseIdParam, verifyUserAccount);
+router.patch("/users/:userId/status", authenticate, isAdmin, existence, validate(updateUserStatusSchema), manageUserStatus);
+router.patch("/users/:userId/role", authenticate, isAdmin, existence, validate(updateUserRoleSchema), manageUserRole);
+router.patch("/users/:userId/verify", authenticate, isAdmin, existence, parseIdParam, verifyUserAccount);
 
 // User listing (Tâche 3)
 router.get("/users", authenticate, isAdmin, existence, validate(usersFilterSchema, "query"), getUsers);

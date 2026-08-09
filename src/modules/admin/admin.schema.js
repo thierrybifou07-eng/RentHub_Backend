@@ -22,11 +22,11 @@ export const updateUserRoleSchema = Joi.object({
     currentRole: Joi.string().valid(...rolesValues).required().messages({
         "any.only": 'The currentRole must be one of these choices: ' + rolesValues.join(', '),
         "any.required": "currentRole is required",
-    }),
+    })/* ,
     userId: Joi.number().integer().required().messages({
         "number.base": "userId is required",
         "any.required": "userId is required",
-    }),
+    }), */
 }).options({ stripUnknown: true });
 
 export const updateUserStatusSchema = Joi.object({
@@ -38,11 +38,11 @@ export const updateUserStatusSchema = Joi.object({
     currentStatus: Joi.string().valid(...statusValues).required().messages({
         "any.only": 'The currentStatus must be one of these choices: ' + statusValues.join(', '),
         "any.required": "currentStatus is required",
-    }),
+    })/* ,
     userId: Joi.number().integer().required().messages({
         "number.base": "userId is required",
         "any.required": "userId is required",
-    }),
+    }), */
 }).options({ stripUnknown: true });
 
 // ===== Tâche 1 — Manage announcement status =====
