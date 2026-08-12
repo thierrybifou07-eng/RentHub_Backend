@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createServer } from "node:http";
+import { Server } from "socket.io";
 import "../config/env.js";
 import apiRouter from "./routes.js";
 import { corsOptions } from "../config/corsOptions.js";
@@ -13,8 +15,32 @@ import { notFound } from "./shared/helpers/response.helpers.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
+const httpServer = createServer(app);
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: '*', // En production, on peut restreindre aux domaines autorisés
+    methods: ['GET', 'POST']
+  }
+});
+
+io.on('connection', (socket) => {
+  console.log('A user connected via WebSocket:', socket.id);
+  
+  socket.on('authenticate', (userId) => {
+    if (userId) {
+      socket.join(`user_${userId}`);
+      console.log(`Socket ${socket.id} joined room user_${userId}`);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
 
 app.use(cors(corsOptions));
+app.set('io', io);
 
 app.post("/api/v1/stripe/webhook", express.raw({ type: "application/json" }), handleWebhook);
 
@@ -37,7 +63,7 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 const port = process.env.PORT;
-app.listen(port, process.env.HOST,() => {
+httpServer.listen(port, process.env.HOST,() => {
     console.log(`Le serveur est ouvert sur le port http://localhost:${port}`);
 });
 
