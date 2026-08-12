@@ -1,6 +1,7 @@
 import stripe from "../../../config/stripe.js";
 import { SubscriptionPlan, UserSubscription, User } from "../../database/models/index.js";
 import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
+import { notify } from "../notifications/notification.helpers.js";
 
 const activateSubscription = async (paymentIntent) => {
     const piId = paymentIntent.id;
@@ -44,15 +45,31 @@ const activateSubscription = async (paymentIntent) => {
     } catch (e) {
         console.error(e.message);
     }
+
+    await notify(subscription.user_id, {
+        type: "subscription_activated",
+        title: "Abonnement activé",
+        body: `${plan.label} — actif jusqu'au ${endDate.toISOString().slice(0, 10)}`,
+        data: { subscriptionId: subscription.id, planId: plan.id },
+    });
 };
 
 const markPaymentFailed = async (paymentIntent) => {
     const piId = paymentIntent.id;
 
-    await UserSubscription.update(
-        { status: "FAILED" },
-        { where: { stripe_payment_intent_id: piId, status: "WAITING_PAYMENT" } }
-    );
+    const subscription = await UserSubscription.findOne({
+        where: { stripe_payment_intent_id: piId, status: "WAITING_PAYMENT" },
+    });
+
+    if (subscription) {
+        await subscription.update({ status: "FAILED" });
+        await notify(subscription.user_id, {
+            type: "subscription_failed",
+            title: "Paiement de l'abonnement échoué",
+            body: "Le paiement de votre abonnement n'a pas pu être finalisé.",
+            data: { subscriptionId: subscription.id },
+        });
+    }
 };
 
 export const handleWebhook = async (req, res) => {

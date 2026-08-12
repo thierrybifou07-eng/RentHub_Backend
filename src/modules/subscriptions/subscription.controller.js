@@ -1,6 +1,7 @@
 import { Op } from "sequelize";
 import { SubscriptionPlan, UserSubscription, User } from "../../database/models/index.js";
 import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
+import { notify, notifyAdmins } from "../notifications/notification.helpers.js";
 import {
     success,
     created,
@@ -60,6 +61,14 @@ export const subscribe = async (req, res) => {
             plan_id: planId,
             status: "PENDING",
             payment_reference: paymentReference || null,
+        });
+
+        await notifyAdmins({
+            type: "new_subscription_request",
+            title: "Nouvelle demande d'abonnement",
+            body: plan.label,
+            data: { subscriptionId: subscription.id, planId },
+            actorId: req.user.id,
         });
 
         return res.status(201).json(created("Subscription request submitted successfully", subscription));
@@ -197,6 +206,14 @@ export const activateSubscription = async (req, res) => {
             console.error(e.message);
         }
 
+        await notify(subscription.user_id, {
+            type: "subscription_activated",
+            title: "Abonnement activé",
+            body: `${plan.label} — actif jusqu'au ${endDate.toISOString().slice(0, 10)}`,
+            data: { subscriptionId: subscription.id, planId: plan.id },
+            actorId: req.user.id,
+        });
+
         return res.status(200).json(success("Subscription activated successfully", subscription));
     } catch (err) {
         return handleServerError(res, err);
@@ -234,6 +251,14 @@ export const rejectSubscription = async (req, res) => {
         } catch (e) {
             console.error(e.message);
         }
+
+        await notify(subscription.user_id, {
+            type: "subscription_rejected",
+            title: "Abonnement non validé",
+            body: subscription.SubscriptionPlan.label,
+            data: { subscriptionId: subscription.id },
+            actorId: req.user.id,
+        });
 
         return res.status(200).json(success("Subscription rejected successfully", subscription));
     } catch (err) {

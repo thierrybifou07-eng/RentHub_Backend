@@ -2,6 +2,7 @@ import { Op } from "sequelize";
 import { Conversation, Message, Announcement, User } from "../../database/models/index.js";
 import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
 import { getIO } from "../../realtime/socket.js";
+import { notify } from "../notifications/notification.helpers.js";
 import { ROLE_IDS } from "../../../config/auth/app.js";
 import {
     success,
@@ -92,6 +93,14 @@ export const startConversation = async (req, res) => {
                 message: message.toJSON(),
             });
         }
+
+        await notify(announcement.user_id, {
+            type: "new_message",
+            title: "Nouvelle conversation",
+            body: content.length > 120 ? content.substring(0, 120) + "…" : content,
+            data: { conversationId: conversation.id, announcementId },
+            actorId: req.user.id,
+        });
 
         return res.status(201).json(created("Conversation started", { conversation, message }));
     } catch (err) {
@@ -295,6 +304,14 @@ export const sendMessage = async (req, res) => {
                 message: message.toJSON(),
             });
         }
+
+        await notify(recipientId, {
+            type: "new_message",
+            title: "Nouveau message",
+            body: content.length > 120 ? content.substring(0, 120) + "…" : content,
+            data: { conversationId: conversation.id },
+            actorId: req.user.id,
+        });
 
         return res.status(201).json(created("Message sent", message));
     } catch (err) {

@@ -4,6 +4,7 @@ import ANNOUNCEMENT_STATUS from "./announcementStatus.js";
 import MEDIA_TYPE_CODES from "../media/mediaType.js";
 import { verifyToken } from "../auth/jwt.js";
 import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
+import { notify, notifyAdmins } from "../notifications/notification.helpers.js";
 import { toPublicUploadUrl } from "../../shared/helpers/helpers.js";
 import {
     success,
@@ -226,6 +227,14 @@ export const create = async (req, res) => {
             console.error(e.message);
         }
 
+        await notifyAdmins({
+            type: "new_pending_announcement",
+            title: "Nouvelle annonce à modérer",
+            body: announcement.title,
+            data: { announcementId: announcement.id },
+            actorId: req.user.id,
+        });
+
         return res.status(201).json(created("Announcement created successfully", result));
     } catch (err) {
         return handleServerError(res, err);
@@ -295,6 +304,14 @@ export const archiveAnnouncement = async (req, res) => {
         const result = await Announcement.findByPk(announcement.id, {
             include: announcementsInclude,
             paranoid: false,
+        });
+
+        await notify(announcement.user_id, {
+            type: "announcement_archived",
+            title: "Annonce archivée",
+            body: announcement.title,
+            data: { announcementId: announcement.id },
+            actorId: req.user.id,
         });
 
         return res.status(200).json(updated("Announcement archived successfully", result));
@@ -387,6 +404,14 @@ export const approve = async (req, res) => {
             console.error(e.message);
         }
 
+        await notify(announcement.user_id, {
+            type: "announcement_approved",
+            title: "Annonce approuvée",
+            body: announcement.title,
+            data: { announcementId: announcement.id },
+            actorId: req.user.id,
+        });
+
         return res.status(200).json(success("Announcement approved successfully", announcement));
     } catch (err) {
         return handleServerError(res, err);
@@ -420,6 +445,14 @@ export const reject = async (req, res) => {
         } catch (e) {
             console.error(e.message);
         }
+
+        await notify(announcement.user_id, {
+            type: "announcement_rejected",
+            title: "Annonce non retenue",
+            body: announcement.title,
+            data: { announcementId: announcement.id },
+            actorId: req.user.id,
+        });
 
         return res.status(200).json(success("Announcement rejected successfully", announcement));
     } catch (err) {

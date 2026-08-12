@@ -9,6 +9,7 @@ import conversationRoutes from "./modules/messaging/messaging.routes.js";
 import reportRoutes from "./modules/reports/report.routes.js";
 import subscriptionRoutes from "./modules/subscriptions/subscription.routes.js";
 import adminRoutes from "./modules/admin/admin.routes.js";
+import notificationRoutes from "./modules/notifications/notification.routes.js";
 
 
 import emailRoute from "../dev-emails/devMail.route.js"
@@ -24,6 +25,7 @@ router.use('/conversations', conversationRoutes)
 router.use('/reports', reportRoutes)
 router.use('/subscriptions', subscriptionRoutes)
 router.use('/admin', adminRoutes)
+router.use('/notifications', notificationRoutes)
 //Pour le developpement
 router.use('/dev', emailRoute)
 export default router;

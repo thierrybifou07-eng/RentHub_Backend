@@ -2,6 +2,7 @@ import { Op } from "sequelize";
 import { Report, ReportStatus, Announcement, User } from "../../database/models/index.js";
 import ANNOUNCEMENT_STATUS from "../announcements/announcementStatus.js";
 import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
+import { notify, notifyAdmins } from "../notifications/notification.helpers.js";
 import {
     success,
     created,
@@ -55,6 +56,14 @@ export const createReport = async (req, res) => {
             reporter_id: req.user.id,
             reason,
             status_id: 1,
+        });
+
+        await notifyAdmins({
+            type: "new_report",
+            title: "Nouveau signalement",
+            body: reason,
+            data: { reportId: report.id, announcementId },
+            actorId: req.user.id,
         });
 
         return res.status(201).json(created("Report submitted successfully", report));
@@ -128,6 +137,14 @@ export const reviewReport = async (req, res) => {
 
         await report.update({ status_id: 2, admin_id: req.user.id });
 
+        await notify(report.reporter_id, {
+            type: "report_reviewed",
+            title: "Signalement en cours de traitement",
+            body: "Votre signalement a été pris en compte par l'équipe de modération.",
+            data: { reportId: report.id },
+            actorId: req.user.id,
+        });
+
         return res.status(200).json(success("Report marked as reviewed", report));
     } catch (err) {
         return handleServerError(res, err);
@@ -148,6 +165,14 @@ export const dismissReport = async (req, res) => {
             status_id: 3,
             admin_id: req.user.id,
             admin_note: req.body.adminNote || null,
+        });
+
+        await notify(report.reporter_id, {
+            type: "report_dismissed",
+            title: "Signalement clôturé",
+            body: "Votre signalement a été examiné et aucune suite n'a été donnée.",
+            data: { reportId: report.id },
+            actorId: req.user.id,
         });
 
         return res.status(200).json(success("Report dismissed", report));
@@ -199,6 +224,22 @@ export const takeActionOnReport = async (req, res) => {
         } catch (e) {
             console.error(e.message);
         }
+
+        await notify(report.reporter_id, {
+            type: "report_action_taken",
+            title: "Action prise sur votre signalement",
+            body: "L'annonce signalée a été retirée suite à votre signalement.",
+            data: { reportId: report.id },
+            actorId: req.user.id,
+        });
+
+        await notify(report.Announcement.user_id, {
+            type: "announcement_rejected",
+            title: "Annonce supprimée suite à un signalement",
+            body: report.Announcement.title,
+            data: { announcementId: report.announcement_id, reportId: report.id },
+            actorId: req.user.id,
+        });
 
         return res.status(200).json(success("Action taken on report", report));
     } catch (err) {
