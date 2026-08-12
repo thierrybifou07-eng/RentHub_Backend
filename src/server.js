@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import { createServer } from "node:http";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import "../config/env.js";
@@ -7,6 +8,7 @@ import apiRouter from "./routes.js";
 import { corsOptions } from "../config/corsOptions.js";
 import { loginLimiter, forgotPasswordLimiter, registerLimiter } from "../config/rateLimiter.js";
 import { handleWebhook } from "./modules/subscriptions/stripe.webhook.js";
+import { initSocket } from "./realtime/socket.js";
 import "./database/setupAssociations.js";
 import errorHandler from "./shared/middlewares/errorHandler.js";
 import { notFound } from "./shared/helpers/response.helpers.js";
@@ -36,8 +38,11 @@ app.use((req, res) => {
 // Global error handler (must be last)
 app.use(errorHandler);
 
+const httpServer = createServer(app);
+initSocket(httpServer);
+
 const port = process.env.PORT;
-app.listen(port, process.env.HOST,() => {
+httpServer.listen(port, process.env.HOST,() => {
     console.log(`Le serveur est ouvert sur le port http://localhost:${port}`);
 });
 

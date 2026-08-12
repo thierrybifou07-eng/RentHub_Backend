@@ -1,6 +1,7 @@
 import { Op } from "sequelize";
 import { Conversation, Message, Announcement, User } from "../../database/models/index.js";
 import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
+import { getIO } from "../../realtime/socket.js";
 import { ROLE_IDS } from "../../../config/auth/app.js";
 import {
     success,
@@ -78,6 +79,20 @@ export const startConversation = async (req, res) => {
             console.error(e.message);
         }
 
+        // Temps réel : prévenir le propriétaire d'une nouvelle conversation + message
+        const io = getIO();
+        if (io) {
+            io.to(`user:${announcement.user_id}`).emit("conversation:new", {
+                conversationId: conversation.id,
+                announcementId,
+                message: message.toJSON(),
+            });
+            io.to(`user:${announcement.user_id}`).emit("message:new", {
+                conversationId: conversation.id,
+                message: message.toJSON(),
+            });
+        }
+
         return res.status(201).json(created("Conversation started", { conversation, message }));
     } catch (err) {
         return handleServerError(res, err);
@@ -110,7 +125,54 @@ export const getMyConversations = async (req, res) => {
 
         const filterRowns = rows.filter(a => a.Announcement !== null
         )
-        return res.status(200).json(paginated("Conversations retrieved successfully", filterRowns, {
+
+        // Unread + dernier message par conversation, pour l'utilisateur connecté
+        const ids = filterRowns.map((c) => c.id);
+        let unreadMap = {};
+        let lastMessageAtMap = {};
+
+        if (ids.length > 0) {
+            const unreadRows = await Message.findAll({
+                where: {
+                    conversation_id: { [Op.in]: ids },
+                    sender_id: { [Op.ne]: req.user.id },
+                    read_at: null,
+                },
+                attributes: [
+                    "conversation_id",
+                    [Message.sequelize.fn("COUNT", Message.sequelize.col("id")), "unread_count"],
+                ],
+                group: ["conversation_id"],
+                raw: true,
+            });
+
+            const lastRows = await Message.findAll({
+                where: { conversation_id: { [Op.in]: ids } },
+                attributes: [
+                    "conversation_id",
+                    [Message.sequelize.fn("MAX", Message.sequelize.col("createdAt")), "last_message_at"],
+                ],
+                group: ["conversation_id"],
+                raw: true,
+            });
+
+            unreadMap = unreadRows.reduce((acc, row) => {
+                acc[row.conversation_id] = Number(row.unread_count) || 0;
+                return acc;
+            }, {});
+            lastMessageAtMap = lastRows.reduce((acc, row) => {
+                acc[row.conversation_id] = row.last_message_at;
+                return acc;
+            }, {});
+        }
+
+        const result = filterRowns.map((c) => ({
+            ...c.toJSON(),
+            unread_count: unreadMap[c.id] || 0,
+            last_message_at: lastMessageAtMap[c.id] || null,
+        }));
+
+        return res.status(200).json(paginated("Conversations retrieved successfully", result, {
             page,
             limit,
             total: count,
@@ -221,6 +283,18 @@ export const sendMessage = async (req, res) => {
         });
         conversation.last_message = message.content;
         await conversation.save();
+
+        // Temps réel : prévenir l'autre participant
+        const recipientId = conversation.tenant_id === req.user.id
+            ? conversation.owner_id
+            : conversation.tenant_id;
+        const io = getIO();
+        if (io) {
+            io.to(`user:${recipientId}`).emit("message:new", {
+                conversationId: conversation.id,
+                message: message.toJSON(),
+            });
+        }
 
         return res.status(201).json(created("Message sent", message));
     } catch (err) {
