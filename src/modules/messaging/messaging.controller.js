@@ -78,11 +78,6 @@ export const startConversation = async (req, res) => {
             console.error(e.message);
         }
 
-        const io = req.app.get('io');
-        if (io) {
-            io.to(`user_${announcement.user_id}`).emit('new_message', message);
-        }
-
         return res.status(201).json(created("Conversation started", { conversation, message }));
     } catch (err) {
         return handleServerError(res, err);
@@ -226,12 +221,6 @@ export const sendMessage = async (req, res) => {
         });
         conversation.last_message = message.content;
         await conversation.save();
-
-        const io = req.app.get('io');
-        if (io) {
-            const recipientId = conversation.tenant_id === req.user.id ? conversation.owner_id : conversation.tenant_id;
-            io.to(`user_${recipientId}`).emit('new_message', message);
-        }
 
         return res.status(201).json(created("Message sent", message));
     } catch (err) {
