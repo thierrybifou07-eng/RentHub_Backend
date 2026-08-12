@@ -1,4 +1,9 @@
 import { Otp } from "../../database/models/index.js";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PROJECT_ROOT = resolve(__dirname, "../..");
 
 export function getPlural(word) {
     // 🔹 Liste des pluriels irréguliers
@@ -128,4 +133,25 @@ export function toPublicUploadUrl(absolutePath) {
     if (idx === -1) return normalized; // Fallback: return as-is if pattern not found
     // Strip "public/" prefix so the result is "/uploads/..."
     return "/" + normalized.substring(idx + "public/".length);
+}
+
+/**
+ * Converts a public upload URL (e.g. "/uploads/ANNOUNCEMENT_IMAGE/14/xxx.png")
+ * back into an absolute disk path so files can be removed with fs.
+ */
+export function publicUrlToDiskPath(url) {
+    if (!url || typeof url !== "string") return null;
+    const normalized = url.replace(/\\/g, "/");
+    const marker = "public/uploads/";
+    const markerIdx = normalized.indexOf(marker);
+    if (markerIdx !== -1) {
+        return resolve(PROJECT_ROOT, normalized.substring(markerIdx));
+    }
+    if (normalized.startsWith("uploads/")) {
+        return resolve(PROJECT_ROOT, "public", normalized);
+    }
+    if (normalized.startsWith("/")) {
+        return resolve(PROJECT_ROOT, normalized.replace(/^\//, ""));
+    }
+    return resolve(PROJECT_ROOT, normalized);
 }

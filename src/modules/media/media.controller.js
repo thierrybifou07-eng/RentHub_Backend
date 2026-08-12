@@ -1,7 +1,7 @@
 import { existsSync, unlinkSync } from "node:fs";
 import { Media, MediaType, Announcement } from "../../database/models/index.js";
 import MEDIA_TYPE_CODES from "./mediaType.js";
-import { toPublicUploadUrl } from "../../shared/helpers/helpers.js";
+import { toPublicUploadUrl, publicUrlToDiskPath } from "../../shared/helpers/helpers.js";
 import {
     success,
     created,
@@ -34,7 +34,7 @@ export const uploadAvatar = async (req, res) => {
         });
 
         for (const old of existingAvatars) {
-            const filePath = old.url;
+            const filePath = publicUrlToDiskPath(old.url);
             if (existsSync(filePath)) {
                 try { unlinkSync(filePath); } catch (_) { }
             }
@@ -68,7 +68,7 @@ export const deleteAvatar = async (req, res) => {
 
         if (!media) return res.status(404).json(notFound("No avatar found"));
 
-        const filePath = media.url;
+        const filePath = publicUrlToDiskPath(media.url);
         if (existsSync(filePath)) {
             try { unlinkSync(filePath); } catch (_) { }
         }
@@ -166,7 +166,7 @@ export const deleteMedia = async (req, res) => {
             }
         }
 
-        const filePath = media.url;
+        const filePath = publicUrlToDiskPath(media.url);
         if (existsSync(filePath)) {
             try { unlinkSync(filePath); } catch (_) { }
         }

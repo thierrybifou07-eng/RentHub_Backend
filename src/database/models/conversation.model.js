@@ -21,9 +21,9 @@ export const Conversation = orm.define(
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,
     },
-    last_message_at: {
-      type: DataTypes.DATE,
-      allowNull: true,
+    last_message: {
+      type: DataTypes.TEXT,
+      allowNull: false,
     },
   },
   {

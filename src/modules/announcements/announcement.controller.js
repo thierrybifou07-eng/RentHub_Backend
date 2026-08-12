@@ -135,17 +135,18 @@ export const getById = async (req, res) => {
             paranoid: true,
         });
 
+
         if (!announcement) return res.status(404).json(notFound("Announcement not found"));
-
-        if (user && announcement.user_id === user.id) {
-            return res.status(200).json(success("Announcement retrieved successfully", announcement));
-        }
-
         if (announcement.status_id !== ANNOUNCEMENT_STATUS.ACTIVE) {
             return res.status(404).json(notFound("Announcement not found"));
         }
+        const owner = await User.scope('forAnnouncementDetails').findByPk(announcement.user_id)
+        if (!owner) return res.status(404).json(notFound("Owner not found"));
 
-        return res.status(200).json(success("Announcement retrieved successfully", announcement));
+        /*      if (user && announcement.user_id === (owner.id || user.id)) {
+                 return res.status(200).json(success("Announcement retrieved successfully", { announcement, owner }));
+             } */
+        return res.status(200).json(success("Announcement retrieved successfully", { announcement, owner }));
     } catch (err) {
         return handleServerError(res, err);
     }

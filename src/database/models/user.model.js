@@ -58,7 +58,7 @@ export const User = orm.define(
       type: DataTypes.STRING(255),
       allowNull: true,
     },
-email_verified_at: {
+    email_verified_at: {
       type: DataTypes.DATE,
       allowNull: true,
       defaultValue: null
@@ -88,7 +88,8 @@ email_verified_at: {
   },
   scopes: {
     withPassword: { attributes: { include: ['password'] } },
-    onlyId: { attributes: ['id'] }
+    onlyId: { attributes: ['id'] },
+    forAnnouncementDetails: { attributes: ['firstname', 'lastname', 'verified_at'] }
   },
   indexes: [
     { fields: ['role_id'] },

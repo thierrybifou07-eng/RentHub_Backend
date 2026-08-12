@@ -51,7 +51,7 @@ export const startConversation = async (req, res) => {
             announcement_id: announcementId,
             tenant_id: req.user.id,
             owner_id: announcement.user_id,
-            last_message_at: new Date(),
+            last_message: content,
         });
 
         const message = await Message.create({
@@ -102,13 +102,15 @@ export const getMyConversations = async (req, res) => {
                 { model: User, as: "tenant", attributes: ["id", "firstname", "lastname"] },
                 { model: User, as: "owner", attributes: ["id", "firstname", "lastname"] },
             ],
-            order: [["last_message_at", "DESC"]],
+            order: [["updatedAt", "DESC"]],
             limit,
             offset,
             distinct: true,
         });
 
-        return res.status(200).json(paginated("Conversations retrieved successfully", rows, {
+        const filterRowns = rows.filter(a => a.Announcement !== null
+        )
+        return res.status(200).json(paginated("Conversations retrieved successfully", filterRowns, {
             page,
             limit,
             total: count,
@@ -217,8 +219,7 @@ export const sendMessage = async (req, res) => {
             sender_id: req.user.id,
             content,
         });
-
-        conversation.last_message_at = new Date();
+        conversation.last_message = message.content;
         await conversation.save();
 
         return res.status(201).json(created("Message sent", message));
