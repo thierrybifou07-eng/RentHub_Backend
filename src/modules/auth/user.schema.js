@@ -76,7 +76,7 @@ export const updateProfileSchema = Joi.object({
         "string.base": "Address must be a string",
         "string.max": "Address cannot exceed {#limit} characters",
     }),
-    city_id: Joi.number().integer().allow(null).optional().messages({
+    city_id: Joi.allow(null).optional().messages({
         "number.base": "City must be a number",
         "number.integer": "City must be a number",
     }),

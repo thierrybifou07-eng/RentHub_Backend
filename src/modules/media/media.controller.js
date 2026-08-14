@@ -26,13 +26,16 @@ const isOwnerOf = (media, user) => {
 };
 
 export const uploadAvatar = async (req, res) => {
+
     try {
+            console.log('Here is the req////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////))))))))))))))))))))))))))))$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$', req);
         if (!req.file) return res.status(400).json({ status: "fail", message: "No file provided" });
 
         const existingAvatars = await Media.findAll({
             where: { mediable_id: req.user.id, mediable_type: "User" },
         });
 
+    console.log('Here is the existingAvatars  ////////////////////////////////////////////////////////////////////////////////////////////////////))))))))))))))))))))))))))))$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$', existingAvatars);
         for (const old of existingAvatars) {
             const filePath = publicUrlToDiskPath(old.url);
             if (existsSync(filePath)) {
@@ -84,6 +87,8 @@ export const deleteAvatar = async (req, res) => {
 export const uploadAnnouncementImages = async (req, res) => {
     try {
         const announcement = req.announcement;
+        console.log('Here is the req////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////))))))))))))))))))))))))))))$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$', req);
+        console.log('Here is the req.announcement////////////////////////////////////////////////////////////////////////////////////////////////////))))))))))))))))))))))))))))$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$', announcement);
 
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({ status: "fail", message: "No files provided" });

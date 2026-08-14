@@ -5,14 +5,14 @@ import {
     markNotificationRead,
     markAllNotificationsRead,
 } from "./notification.controller.js";
-import { authenticate } from "../auth/auth.middleware.js";
+import { authenticate, userHasVerifiedEmail, userIsActive } from "../auth/auth.middleware.js";
 import { parseIdParam } from "../../shared/middlewares/parseIdParam.js";
 
 const router = Router();
 
-router.get("/", authenticate, getMyNotifications);
-router.get("/unread-count", authenticate, getUnreadNotificationCount);
-router.patch("/read-all", authenticate, markAllNotificationsRead);
-router.patch("/:id/read", authenticate, parseIdParam, markNotificationRead);
+router.get("/", authenticate, userHasVerifiedEmail, userIsActive, getMyNotifications);
+router.get("/unread-count", authenticate, userHasVerifiedEmail, userIsActive, getUnreadNotificationCount);
+router.patch("/read-all", authenticate, userHasVerifiedEmail, userIsActive, markAllNotificationsRead);
+router.patch("/:id/read", authenticate, userHasVerifiedEmail, userIsActive, parseIdParam, markNotificationRead);
 
 export default router;

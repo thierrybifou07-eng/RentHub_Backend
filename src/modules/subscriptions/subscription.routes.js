@@ -9,7 +9,7 @@ import {
     activateSubscription,
     rejectSubscription,
 } from "./subscription.controller.js";
-import { authenticate } from "../auth/auth.middleware.js";
+import { authenticate, userHasVerifiedEmail, userIsActive } from "../auth/auth.middleware.js";
 import { parseIdParam } from "../../shared/middlewares/parseIdParam.js";
 import validate from "../../shared/middlewares/validate.js";
 import {
@@ -27,14 +27,14 @@ import { isAdmin } from "../admin/admin.middleware.js";
 const router = Router();
 
 router.get("/plans", getPlans);
-router.post("/subscribe", authenticate, validate(subscribeSchema), subscribe);
-router.get("/me", authenticate, getMySubscription);
-router.get("/history", authenticate, getMyHistory);
-router.get("/admin", authenticate, isAdmin, validate(subscriptionFilterSchema, "query"), getAllSubscriptions);
-router.get("/admin/:id", authenticate, isAdmin, parseIdParam, getSubscriptionById);
-router.patch("/admin/:id/activate", authenticate, isAdmin, parseIdParam, validate(adminNoteSchema), activateSubscription);
-router.patch("/admin/:id/reject", authenticate, isAdmin, parseIdParam, validate(adminNoteSchema), rejectSubscription);
-router.post("/create-payment-intent", authenticate, validate(createPaymentIntentSchema), createPaymentIntent);
-router.post("/confirm-payment", authenticate, validate(confirmPaymentSchema), confirmPayment);
+router.post("/subscribe", authenticate, userHasVerifiedEmail, userIsActive, validate(subscribeSchema), subscribe);
+router.get("/me", authenticate, userHasVerifiedEmail, userIsActive, getMySubscription);
+router.get("/history", authenticate, userHasVerifiedEmail, userIsActive, getMyHistory);
+router.get("/admin", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, validate(subscriptionFilterSchema, "query"), getAllSubscriptions);
+router.get("/admin/:id", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, parseIdParam, getSubscriptionById);
+router.patch("/admin/:id/activate", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, parseIdParam, validate(adminNoteSchema), activateSubscription);
+router.patch("/admin/:id/reject", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, parseIdParam, validate(adminNoteSchema), rejectSubscription);
+router.post("/create-payment-intent", authenticate, userHasVerifiedEmail, userIsActive, validate(createPaymentIntentSchema), createPaymentIntent);
+router.post("/confirm-payment", authenticate, userHasVerifiedEmail, userIsActive, validate(confirmPaymentSchema), confirmPayment);
 
 export default router;

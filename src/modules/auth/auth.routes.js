@@ -14,7 +14,7 @@ import {
     changePassword,
     deleteAccount,
 } from "./auth.controller.js";
-import { authenticate } from "./auth.middleware.js";
+import { authenticate, userHasVerifiedEmail, userIsActive } from "./auth.middleware.js";
 import validate from "../../shared/middlewares/validate.js";
 import {
     loginSchema,
@@ -39,8 +39,8 @@ authRoutes.post("/reset-password", validate(resetPasswordSchema()), resetPasswor
 authRoutes.post("/verify-email", authenticate, validate(verifiedEmailSchema()), verifyEmail)
 authRoutes.post("/regenerate-code", authenticate, regenerateCode)
 authRoutes.get("/me", authenticate, getCurrentUser)
-authRoutes.patch("/me", authenticate, validate(updateProfileSchema), updateCurrentUser)
-authRoutes.patch("/me/password", authenticate, validate(changePasswordSchema), changePassword)
-authRoutes.delete("/me", authenticate, validate(deleteAccountSchema), deleteAccount)
+authRoutes.put("/me", authenticate, userHasVerifiedEmail, userIsActive, validate(updateProfileSchema), updateCurrentUser)
+authRoutes.patch("/me/password", authenticate, userHasVerifiedEmail, userIsActive, validate(changePasswordSchema), changePassword)
+authRoutes.delete("/me", authenticate, userHasVerifiedEmail, userIsActive, validate(deleteAccountSchema), deleteAccount)
 
 export default authRoutes;

@@ -12,6 +12,7 @@ import { initSocket } from "./realtime/socket.js";
 import "./database/setupAssociations.js";
 import errorHandler from "./shared/middlewares/errorHandler.js";
 import { notFound } from "./shared/helpers/response.helpers.js";
+import MediaRouter from "./modules/media/media.router.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -22,11 +23,14 @@ app.post("/api/v1/stripe/webhook", express.raw({ type: "application/json" }), ha
 
 app.use("/uploads", express.static(resolve(__dirname, "../public/uploads")));
 
+app.use("/api/v1", MediaRouter);
+
 app.use(express.json());
 
 app.use("/api/v1/auth/login", loginLimiter);
 app.use("/api/v1/auth/forgot-password", forgotPasswordLimiter);
 app.use("/api/v1/auth/register", registerLimiter);
+
 
 app.use("/api/v1", apiRouter);
 
@@ -42,7 +46,7 @@ const httpServer = createServer(app);
 initSocket(httpServer);
 
 const port = process.env.PORT;
-httpServer.listen(port, process.env.HOST,() => {
+httpServer.listen(port, process.env.HOST, () => {
     console.log(`Le serveur est ouvert sur le port http://localhost:${port}`);
 });
 

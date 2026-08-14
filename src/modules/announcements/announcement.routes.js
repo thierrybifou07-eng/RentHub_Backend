@@ -13,7 +13,7 @@ import {
     reject,
 } from "./announcement.controller.js";
 import { isOwner } from "./announcement.middleware.js";
-import { authenticate } from "../auth/auth.middleware.js";
+import { authenticate, userHasVerifiedEmail, userIsActive } from "../auth/auth.middleware.js";
 import { parseIdParam } from "../../shared/middlewares/parseIdParam.js";
 import validate from "../../shared/middlewares/validate.js";
 import createUpload from "../../../config/media/upload.js";
@@ -47,23 +47,23 @@ const mediaUploadMiddleware = async (req, res, next) => {
 router.get("/", validate(announcementFilterSchema, "query"), getAll);
 
 // Owner's own announcements (filterable by status_id)
-router.get("/me", authenticate, validate(myAnnouncementsFilterSchema, "query"), getMyAnnouncements);
+router.get("/me", authenticate, userHasVerifiedEmail, userIsActive, validate(myAnnouncementsFilterSchema, "query"), getMyAnnouncements);
 
 // Admin — pending queue & moderation
-router.get("/admin/pending", authenticate, isAdmin, getPending);
-router.put("/admin/:id/approve", authenticate, isAdmin, parseIdParam, approve);
-router.put("/admin/:id/reject", authenticate, isAdmin, parseIdParam, validate(rejectAnnouncementSchema), reject);
+router.get("/admin/pending", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, getPending);
+router.put("/admin/:id/approve", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, parseIdParam, approve);
+router.put("/admin/:id/reject", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, parseIdParam, validate(rejectAnnouncementSchema), reject);
 
 // Public detail
 router.get("/:id", parseIdParam, getById);
 
 // Owner CRUD
-router.post("/", authenticate, mediaUploadMiddleware, validate(createAnnouncementSchema), create);
-router.put("/:id", authenticate, parseIdParam, isOwner, validate(updateAnnouncementSchema), update);
-router.delete("/:id", authenticate, parseIdParam, isOwner, delete_);
+router.post("/", authenticate, userHasVerifiedEmail, userIsActive, mediaUploadMiddleware, validate(createAnnouncementSchema), create);
+router.put("/:id", authenticate, userHasVerifiedEmail, userIsActive, parseIdParam, isOwner, validate(updateAnnouncementSchema), update);
+router.delete("/:id", authenticate, userHasVerifiedEmail, userIsActive, parseIdParam, isOwner, delete_);
 
 // Owner lifecycle actions
-router.patch("/:id/archive", authenticate, parseIdParam, isOwner, archiveAnnouncement);
-router.patch("/:id/resubmit", authenticate, parseIdParam, isOwner, resubmitAnnouncement);
+router.patch("/:id/archive", authenticate, userHasVerifiedEmail, userIsActive, parseIdParam, isOwner, archiveAnnouncement);
+router.patch("/:id/resubmit", authenticate, userHasVerifiedEmail, userIsActive, parseIdParam, isOwner, resubmitAnnouncement);
 
 export default router;

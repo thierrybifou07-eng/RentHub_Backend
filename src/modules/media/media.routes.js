@@ -7,7 +7,7 @@ import {
     deleteMedia,
     getMyMedia,
 } from "./media.controller.js";
-import { authenticate } from "../auth/auth.middleware.js";
+import { authenticate, userHasVerifiedEmail, userIsActive } from "../auth/auth.middleware.js";
 import { isOwner as isAnnouncementOwner } from "../announcements/announcement.middleware.js";
 import { parseIdParam } from "../../shared/middlewares/parseIdParam.js";
 import createUpload from "../../../config/media/upload.js";
@@ -15,9 +15,9 @@ import MEDIA_TYPE_CODES from "./mediaType.js";
 
 const router = Router();
 
-router.get("/", authenticate, getMyMedia);
+router.get("/", authenticate, userHasVerifiedEmail, userIsActive, getMyMedia);
 
-router.post("/avatar", authenticate, async (req, res, next) => {
+router.post("/avatar", authenticate, userHasVerifiedEmail, userIsActive, async (req, res, next) => {
     const upload = await createUpload(MEDIA_TYPE_CODES.USER_AVATAR, (r) => String(r.user.id));
     upload.single("avatar")(req, res, (err) => {
         if (err) return res.status(400).json({ status: "fail", message: err.message });
@@ -25,9 +25,9 @@ router.post("/avatar", authenticate, async (req, res, next) => {
     });
 }, uploadAvatar);
 
-router.delete("/avatar", authenticate, deleteAvatar);
+router.delete("/avatar", authenticate, userHasVerifiedEmail, userIsActive, deleteAvatar);
 
-router.post("/announcements/:id/images", authenticate, parseIdParam, isAnnouncementOwner, async (req, res, next) => {
+router.post("/announcements/:id/images", authenticate, userHasVerifiedEmail, userIsActive, parseIdParam, isAnnouncementOwner, async (req, res, next) => {
     const upload = await createUpload(MEDIA_TYPE_CODES.ANNOUNCEMENT_IMAGE, (r) => String(r.params.id));
     upload.array("images", 10)(req, res, (err) => {
         if (err) return res.status(400).json({ status: "fail", message: err.message });
@@ -35,7 +35,7 @@ router.post("/announcements/:id/images", authenticate, parseIdParam, isAnnouncem
     });
 }, uploadAnnouncementImages);
 
-router.post("/announcements/:id/videos", authenticate, parseIdParam, isAnnouncementOwner, async (req, res, next) => {
+router.post("/announcements/:id/videos", authenticate, userHasVerifiedEmail, userIsActive, parseIdParam, isAnnouncementOwner, async (req, res, next) => {
     const upload = await createUpload(MEDIA_TYPE_CODES.ANNOUNCEMENT_VIDEO, (r) => String(r.params.id));
     upload.array("videos", 3)(req, res, (err) => {
         if (err) return res.status(400).json({ status: "fail", message: err.message });
@@ -43,6 +43,6 @@ router.post("/announcements/:id/videos", authenticate, parseIdParam, isAnnouncem
     });
 }, uploadAnnouncementVideos);
 
-router.delete("/:id", authenticate, parseIdParam, deleteMedia);
+router.delete("/:id", authenticate, userHasVerifiedEmail, userIsActive, parseIdParam, deleteMedia);
 
 export default router;

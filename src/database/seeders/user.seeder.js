@@ -12,8 +12,8 @@ const seedUsers = async () => {
   }
 
   const roleAdmin = await Role.findOne({ where: { code: "ROLE_ADMIN" } });
-  const roleUser = await Role.findOne({ where: { code: "ROLE_USER" } });
   const roleTenant = await Role.findOne({ where: { code: "ROLE_TENANT" } });
+  const roleOwner = await Role.findOne({ where: { code: "ROLE_OWNER" } });
   const statusActive = await UserStatus.findOne({ where: { code: "ACTIVE" } });
   const cities = await City.findAll();
 
@@ -33,7 +33,7 @@ const seedUsers = async () => {
 
   const users = [admin];
 
-  for (let i = 0; i < 25; i++) {
+  for (let i = 0; i < 19; i++) {
     const gender = faker.person.sexType();
     users.push({
       firstname: faker.person.firstName(gender),
@@ -43,7 +43,7 @@ const seedUsers = async () => {
       phone: `+2376${faker.string.numeric(8)}`,
       gender: gender === "male" ? "Homme" : "Femme",
       birth_date: faker.date.birthdate({ min: 18, max: 60, mode: "age" }),
-      role_id: roleUser.id,
+      role_id: faker.helpers.arrayElement([roleTenant.id, roleOwner.id]),
       user_status_id: statusActive.id,
       city_id: faker.helpers.arrayElement(cities).id,
       address: faker.location.streetAddress(),

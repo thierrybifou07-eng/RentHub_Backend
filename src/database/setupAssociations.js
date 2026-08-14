@@ -102,11 +102,14 @@ const setupAssociations = () => {
   User.hasMany(Report, { foreignKey: "admin_id", as: "handledReports" });
   Report.belongsTo(User, { as: "admin", foreignKey: "admin_id" });
 
-  SubscriptionPlan.hasMany(UserSubscription, { foreignKey: "plan_id" });
-  UserSubscription.belongsTo(SubscriptionPlan, { foreignKey: "plan_id" });
-
-  User.hasMany(UserSubscription, { foreignKey: "user_id" });
-  UserSubscription.belongsTo(User, { foreignKey: "user_id" });
+  /*   SubscriptionPlan.hasMany(UserSubscription, { foreignKey: "plan_id" });
+    UserSubscription.belongsTo(SubscriptionPlan, { foreignKey: "plan_id" });
+  
+    User.hasMany(UserSubscription, { foreignKey: "user_id" });
+    UserSubscription.belongsTo(User, { foreignKey: "user_id" });
+   */
+  User.belongsToMany(SubscriptionPlan, { through: UserSubscription, as: "subscriptedBy", foreignKey: "user_id" });
+  SubscriptionPlan.belongsToMany(User, { through: UserSubscription, as: "subscriptablePlan", foreignKey: "plan_id" });
 
   User.hasMany(Notification, { foreignKey: "user_id" });
   Notification.belongsTo(User, { as: "recipient", foreignKey: "user_id" });
