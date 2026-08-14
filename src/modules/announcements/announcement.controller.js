@@ -138,8 +138,14 @@ export const getById = async (req, res) => {
 
 
         if (!announcement) return res.status(404).json(notFound("Announcement not found"));
+
+        // An announcement that is not ACTIVE is only accessible to its owner
+        // (e.g. while it is pending review) so it can be previewed and edited.
         if (announcement.status_id !== ANNOUNCEMENT_STATUS.ACTIVE) {
-            return res.status(404).json(notFound("Announcement not found"));
+            const isOwner = user && user.id === announcement.user_id;
+            if (!isOwner) {
+                return res.status(404).json(notFound("Announcement not found"));
+            }
         }
         const owner = await User.scope('forAnnouncementDetails').findByPk(announcement.user_id)
         if (!owner) return res.status(404).json(notFound("Owner not found"));
@@ -245,17 +251,13 @@ export const update = async (req, res) => {
     try {
         const announcement = req.announcement;
 
-        // Rejected announcements must be resubmitted, not edited directly
-        if (announcement.status_id === ANNOUNCEMENT_STATUS.REJECTED) {
-            return res.status(400).json(badRequest("Rejected announcements cannot be edited. Please resubmit instead."));
+        // Only announcements still under review can be edited. Published (ACTIVE),
+        // rented, archived or rejected ones must be deleted/recreated or resubmitted.
+        if (announcement.status_id !== ANNOUNCEMENT_STATUS.PENDING_REVIEW) {
+            return res.status(400).json(badRequest("Only announcements under review can be edited. Please delete it and create a new one, or resubmit it if applicable."));
         }
 
         const updateData = { ...req.body };
-
-        // If the announcement was ACTIVE, put it back under review after edits
-        if (announcement.status_id === ANNOUNCEMENT_STATUS.ACTIVE) {
-            updateData.status_id = ANNOUNCEMENT_STATUS.PENDING_REVIEW;
-        }
 
         await Announcement.update(updateData, { where: { id: announcement.id } });
 

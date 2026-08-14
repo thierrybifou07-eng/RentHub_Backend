@@ -40,6 +40,7 @@ authRoutes.post("/verify-email", authenticate, validate(verifiedEmailSchema()), 
 authRoutes.post("/regenerate-code", authenticate, regenerateCode)
 authRoutes.get("/me", authenticate, getCurrentUser)
 authRoutes.put("/me", authenticate, userHasVerifiedEmail, userIsActive, validate(updateProfileSchema), updateCurrentUser)
+authRoutes.patch("/me", authenticate, userHasVerifiedEmail, userIsActive, validate(updateProfileSchema), updateCurrentUser)
 authRoutes.patch("/me/password", authenticate, userHasVerifiedEmail, userIsActive, validate(changePasswordSchema), changePassword)
 authRoutes.delete("/me", authenticate, userHasVerifiedEmail, userIsActive, validate(deleteAccountSchema), deleteAccount)
 
