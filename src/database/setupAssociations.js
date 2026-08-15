@@ -91,7 +91,7 @@ const setupAssociations = () => {
   Message.belongsTo(User, { as: "sender", foreignKey: "sender_id" });
 
   ReportStatus.hasMany(Report, { foreignKey: "status_id" });
-  Report.belongsTo(ReportStatus, { foreignKey: "status_id" });
+  Report.belongsTo(ReportStatus, { foreignKey: "status_id", as: "status" });
 
   Announcement.hasMany(Report, { foreignKey: "announcement_id" });
   Report.belongsTo(Announcement, { foreignKey: "announcement_id" });

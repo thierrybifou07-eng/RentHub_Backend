@@ -86,7 +86,7 @@ export const getAllReports = async (req, res) => {
             include: [
                 { model: Announcement, attributes: ["id", "title", "status_id"] },
                 { model: User, as: "reporter", attributes: ["id", "firstname", "lastname", "email"] },
-                { model: ReportStatus, attributes: ["id", "code", "label"] },
+                { model: ReportStatus, as: "status", attributes: ["id", "code", "label"] },
                 { model: User, as: "admin", attributes: ["id", "firstname", "lastname"] },
             ],
             order: [["createdAt", "DESC"]],
@@ -112,7 +112,7 @@ export const getReport = async (req, res) => {
             include: [
                 { model: Announcement, paranoid: false },
                 { model: User, as: "reporter", attributes: ["id", "firstname", "lastname", "email"] },
-                { model: ReportStatus, attributes: ["id", "code", "label"] },
+                { model: ReportStatus, as: "status", attributes: ["id", "code", "label"] },
                 { model: User, as: "admin", attributes: ["id", "firstname", "lastname"] },
             ],
         });
