@@ -81,7 +81,7 @@ export const getMySubscription = async (req, res) => {
     try {
         const subscription = await UserSubscription.findOne({
             where: { user_id: req.user.id },
-            include: [{ model: SubscriptionPlan, attributes: ["id", "code", "label", "price", "priority", "features"] }],
+            include: [{ model: SubscriptionPlan, attributes: ["id", "code", "label", "description", "price", "priority", "duration_days", "features"] }],
             order: [["createdAt", "DESC"]],
         });
 
@@ -215,6 +215,37 @@ export const activateSubscription = async (req, res) => {
         });
 
         return res.status(200).json(success("Subscription activated successfully", subscription));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};
+
+export const cancelSubscription = async (req, res) => {
+    try {
+        const subscription = await UserSubscription.findByPk(req.params.id, {
+            include: [{ model: SubscriptionPlan }],
+        });
+
+        if (!subscription) return res.status(404).json(notFound("Subscription not found"));
+
+        if (subscription.status !== "ACTIVE") {
+            return res.status(400).json(badRequest("Only active subscriptions can be cancelled"));
+        }
+
+        await subscription.update({
+            status: "CANCELLED",
+            admin_note: req.body.adminNote || null,
+        });
+
+        await notify(subscription.user_id, {
+            type: "subscription_rejected",
+            title: "Abonnement annulé",
+            body: `${subscription.SubscriptionPlan.label} — abonnement annulé`,
+            data: { subscriptionId: subscription.id },
+            actorId: req.user.id,
+        });
+
+        return res.status(200).json(success("Subscription cancelled successfully", subscription));
     } catch (err) {
         return handleServerError(res, err);
     }

@@ -9,30 +9,31 @@ const seedSubscriptionPlans = async () => {
             price: 0,
             duration_days: null,
             priority: 0,
-            features: {},
+            features: { max_media: 5, max_active_announcements: 5 },
         },
         {
             code: "PREMIUM",
             label: "Premium",
             description: "Visibilité boostée et badge Premium",
-            price: 9.99,
+            price: 15000,
             duration_days: 30,
             priority: 1,
-            features: { badge: true, max_media: 15 },
+            features: { badge: true, max_media: 15, max_active_announcements: 25 },
         },
         {
             code: "VIP",
             label: "VIP",
             description: "Visibilité maximale, annonces en tête et badge exclusif",
-            price: 19.99,
+            price: 30000,
             duration_days: 30,
             priority: 2,
-            features: { badge: true, max_media: 50, featured: true },
+            features: { badge: true, max_media: 50, max_active_announcements: 100, featured: true },
         },
     ];
 
     for (const plan of plans) {
-        await SubscriptionPlan.findOrCreate({ where: { code: plan.code }, defaults: plan });
+        const [instance] = await SubscriptionPlan.findOrCreate({ where: { code: plan.code }, defaults: plan });
+        await instance.update(plan);
     }
     console.log(`${plans.length} subscription plans seeded successfully.`);
 };

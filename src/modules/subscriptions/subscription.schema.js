@@ -17,7 +17,7 @@ export const adminNoteSchema = Joi.object({
 }).options({ stripUnknown: true });
 
 export const subscriptionFilterSchema = Joi.object({
-    status: Joi.string().valid("PENDING", "ACTIVE", "EXPIRED", "REJECTED").optional(),
+    status: Joi.string().valid("PENDING", "WAITING_PAYMENT", "ACTIVE", "CANCELLED", "REJECTED", "FAILED", "EXPIRED").optional(),
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(20),
 }).options({ stripUnknown: true });

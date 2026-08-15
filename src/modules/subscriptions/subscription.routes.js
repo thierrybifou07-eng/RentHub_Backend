@@ -8,6 +8,7 @@ import {
     getSubscriptionById,
     activateSubscription,
     rejectSubscription,
+    cancelSubscription,
 } from "./subscription.controller.js";
 import { authenticate, userHasVerifiedEmail, userIsActive } from "../auth/auth.middleware.js";
 import { parseIdParam } from "../../shared/middlewares/parseIdParam.js";
@@ -34,6 +35,7 @@ router.get("/admin", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, 
 router.get("/admin/:id", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, parseIdParam, getSubscriptionById);
 router.patch("/admin/:id/activate", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, parseIdParam, validate(adminNoteSchema), activateSubscription);
 router.patch("/admin/:id/reject", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, parseIdParam, validate(adminNoteSchema), rejectSubscription);
+router.patch("/admin/:id/cancel", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, parseIdParam, validate(adminNoteSchema), cancelSubscription);
 router.post("/create-payment-intent", authenticate, userHasVerifiedEmail, userIsActive, validate(createPaymentIntentSchema), createPaymentIntent);
 router.post("/confirm-payment", authenticate, userHasVerifiedEmail, userIsActive, validate(confirmPaymentSchema), confirmPayment);
 
