@@ -33,10 +33,10 @@ const setupAssociations = () => {
   Session.belongsTo(User, { foreignKey: "user_id" });
 
   Role.hasMany(User, { foreignKey: "role_id" });
-  User.belongsTo(Role, { foreignKey: "role_id" });
+  User.belongsTo(Role, { foreignKey: "role_id", as: "role" });
 
   UserStatus.hasMany(User, { foreignKey: "user_status_id" });
-  User.belongsTo(UserStatus, { foreignKey: "user_status_id" });
+  User.belongsTo(UserStatus, { foreignKey: "user_status_id", as: "status" });
 
   City.hasMany(User, { foreignKey: "city_id" });
   User.belongsTo(City, { foreignKey: "city_id" });

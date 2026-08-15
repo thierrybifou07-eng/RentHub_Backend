@@ -1,6 +1,8 @@
 import { Op, fn, col } from "sequelize";
 import {
     User,
+    Role,
+    UserStatus,
     Announcement,
     Report,
     UserSubscription,
@@ -196,7 +198,7 @@ export const manageUserRole = async (req, res) => {
         const { id } = req.user
         const { currentRole, newRole
         } = req.body
-        const { userId } = req.params
+        const userId = Number(req.params.userId)
         const currentRoleId = Number(getKeyByValue(ROLE_NAMES, currentRole))
         const newRoleId = Number(getKeyByValue(ROLE_NAMES, newRole))
 
@@ -206,7 +208,7 @@ export const manageUserRole = async (req, res) => {
 
         if (id === userId) return res.status(401).json({ ...forbidden(), error: "You can't change yourself" })
 
-        if (userToUpdate.role_id === (ROLE_IDS.ADMIN || ROLE_IDS.ROOT)) return res.status(401).json(forbidden())
+        if ([ROLE_IDS.ADMIN, ROLE_IDS.ROOT].includes(userToUpdate.role_id)) return res.status(401).json(forbidden())
 
         if (newRole === currentRole) return res.status(400).json(fail('The new role must be different of the last current role'))
 
@@ -238,18 +240,18 @@ export const manageUserStatus = async (req, res) => {
      */
     try {
         const { id } = req.user
-        const { userId, currentStatus, newStatus
-        } = req.body
+        const { userId, currentStatus, newStatus } = req.body
+        const userIdParam = Number(req.params.userId)
 
         const currentStatusId = USER_STATUS[currentStatus]
 
         const newStatusId = USER_STATUS[newStatus]
 
-        const userToUpdate = await User.findByPk(userId)
+        const userToUpdate = await User.findByPk(userIdParam)
 
         if (!userToUpdate) return res.status(404).json(notFound())
 
-        if (id === userId) return res.status(401).json({ ...forbidden(), error: "You can't change yourself" })
+        if (id === userIdParam) return res.status(401).json({ ...forbidden(), error: "You can't change yourself" })
 
         if (userToUpdate.user_status_id === USER_STATUS.PENDING_VERIFICATION) return res.status(401).json(unauthorized("The user is not verified yet"))
 
@@ -269,7 +271,7 @@ export const manageUserStatus = async (req, res) => {
 
 export const verifyUserAccount = async (req, res) => {
     try {
-        const user = await User.findByPk(req.params.userId );
+        const user = await User.findByPk(req.params.id);
 
         if (!user) return res.status(404).json(notFound("User not found"));
 
@@ -321,6 +323,10 @@ export const getUsers = async (req, res) => {
 
         const { count, rows } = await User.findAndCountAll({
             where,
+            include: [
+                { model: Role, as: "role", attributes: ["id", "code", "label"] },
+                { model: UserStatus, as: "status", attributes: ["id", "code", "label"] },
+            ],
             limit: Number(limit),
             offset: Number(offset),
             order: [["createdAt", "DESC"]],
