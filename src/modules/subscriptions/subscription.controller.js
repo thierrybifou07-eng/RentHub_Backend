@@ -38,7 +38,7 @@ export const subscribe = async (req, res) => {
         const plan = await SubscriptionPlan.findByPk(planId);
         if (!plan) return res.status(404).json(notFound("Plan not found"));
 
-        if (plan.price === 0) {
+        if (Number(plan.price) === 0) {
             return res.status(400).json(badRequest("Cannot subscribe to the free plan"));
         }
 
@@ -74,13 +74,13 @@ export const subscribe = async (req, res) => {
             try {
                 const user = await User.findByPk(req.user.id, { attributes: ["email", "lastname", "firstname"] });
                 if (user) {
-                    await sendTemplateEmail(user.email, "Abonnement activé", "subscriptionActivated", {
+                    sendTemplateEmail(user.email, "Abonnement activé", "subscriptionActivated", {
                         username: `${user.lastname} ${user.firstname}`,
                         planLabel: plan.label,
                         endDate: endDate.toISOString().slice(0, 10),
                         appUrl: process.env.APP_URL || "https://renthub.fr",
                         heading: "Abonnement activé"
-                    });
+                    }).catch((e) => console.error(e.message));
                 }
             } catch (e) {
                 console.error(e.message);
@@ -242,14 +242,14 @@ export const activateSubscription = async (req, res) => {
         try {
             const user = await User.findByPk(subscription.user_id, { attributes: ["email", "lastname", "firstname"] });
             if (user) {
-                await sendTemplateEmail(user.email, "Abonnement activé", "subscriptionActivated", {
+                sendTemplateEmail(user.email, "Abonnement activé", "subscriptionActivated", {
                     username: `${user.lastname} ${user.firstname}`,
                     planLabel: plan.label,
                     endDate: endDate.toISOString().slice(0, 10),
                     appUrl: process.env.APP_URL || "https://renthub.fr",
                     heading: "Abonnement activé"
 
-                });
+                }).catch((e) => console.error(e.message));
             }
         } catch (e) {
             console.error(e.message);
@@ -320,13 +320,13 @@ export const rejectSubscription = async (req, res) => {
         try {
             const user = await User.findByPk(subscription.user_id, { attributes: ["email", "lastname", "firstname"] });
             if (user) {
-                await sendTemplateEmail(user.email, "Abonnement non validé", "subscriptionRejected", {
+                sendTemplateEmail(user.email, "Abonnement non validé", "subscriptionRejected", {
                     username: `${user.lastname} ${user.firstname}`,
                     planLabel: subscription.SubscriptionPlan.label,
                     reason: req.body.adminNote || null,
                     appUrl: process.env.APP_URL || "https://renthub.fr",
                     heading: "Abonnement non validé"
-                });
+                }).catch((e) => console.error(e.message));
             }
         } catch (e) {
             console.error(e.message);
