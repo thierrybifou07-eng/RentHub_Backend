@@ -226,29 +226,30 @@ export const forgotPassword = async (req, res) => {
 
     if (!user || [USER_STATUS.SUSPENDED, USER_STATUS.INACTIVE].includes(user.user_status_id)) return res.status(401).json(unauthorized("Contact the administrator"));
 
-    const userOtp = await Otp.findOne({ where: { user_id: user.id, type: OTP_TYPES.PASSWORD_RESET } });
-
-    if (userOtp && userOtp.expiredAt > new Date()) return res.status(400).json(conflict("The last code is still valid"));
-
     const countMinutes = 5;
 
-    const { code, expiredAt } = await generateVerificationCode(6, 1000 * countMinutes * 60);
+    let code;
+    const userOtp = await Otp.findOne({ where: { user_id: user.id, type: OTP_TYPES.PASSWORD_RESET } });
 
-    await Otp.upsert({ code, expiredAt, type: OTP_TYPES.PASSWORD_RESET, user_id: user.id });
-
-    let emailSent = true;
-    try {
-      await sendTemplateEmail(email, "Réinitialisation du Mot de Passe", "resetPassword", {
-        countMinutes,
-        heading:"Réinitialisation du Mot de Passe",
-        resetCode: code,
-      });
-    } catch (e) {
-      console.error(e.message);
-      emailSent = false;
+    if (userOtp && userOtp.expiredAt > new Date()) {
+      // Un code actif existe déjà : on le renvoie au lieu de bloquer la demande
+      code = userOtp.code;
+    } else {
+      const { code: newCode, expiredAt } = await generateVerificationCode(6, 1000 * countMinutes * 60);
+      code = newCode;
+      await Otp.upsert({ code, expiredAt, type: OTP_TYPES.PASSWORD_RESET, user_id: user.id });
     }
 
-    return res.status(200).json(success("If this email is registered, you will receive a code", { emailSent }));
+    // Envoi de l'e-mail en arrière-plan : la réponse ne doit pas attendre la délivrance
+    sendTemplateEmail(email, "Réinitialisation du Mot de Passe", "resetPassword", {
+      countMinutes,
+      heading: "Réinitialisation du Mot de Passe",
+      resetCode: code,
+    }).catch((e) => {
+      console.error("[forgotPassword] email delivery failed:", e.message);
+    });
+
+    return res.status(200).json(success("If this email is registered, you will receive a code", { emailSent: true }));
   } catch (err) {
     return handleServerError(res, err);
   }
