@@ -43,6 +43,11 @@ export const registerSchema = Joi.object({
         "string.base": "Confirmation must be a string",
         "any.only": "Password and confirmation must match",
     }),
+    accepted_terms: Joi.boolean().valid(true).required().messages({
+        "any.required": "You must accept the Terms of Service",
+        "any.only": "You must accept the Terms of Service",
+        "boolean.base": "Acceptance of the Terms of Service is required",
+    }),
 }).options({ stripUnknown: true });
 
 // ===== Update current user profile (authenticated) =====

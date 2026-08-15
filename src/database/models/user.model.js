@@ -72,6 +72,10 @@ export const User = orm.define(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    accepted_terms_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
     deleted_at: {
       type: DataTypes.DATE,
       allowNull: true,

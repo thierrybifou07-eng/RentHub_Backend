@@ -39,6 +39,10 @@ const toSafeUser = (user) => ({
 
 export const register = async (req, res) => {
   try {
+    if (req.body.accepted_terms !== true) {
+      return res.status(400).json(badRequest("You must accept the Terms of Service"));
+    }
+
     const checkExistingUser = await User.findOne({
       where:/*  { [Op.or]: [ */{ email: req.body.email /* }, { phone: req.body.phone }] */ },
       attributes: ["id", "email"/* , "phone" */],
@@ -49,10 +53,13 @@ export const register = async (req, res) => {
 /*       if (checkExistingUser.phone === req.body.phone) return res.status(409).json(conflict("That phone number is already taken"));
  */    }
 
+    const { accepted_terms, ...fields } = req.body;
+
     const body = {
-      ...req.body,
+      ...fields,
       user_status_id: USER_STATUS.PENDING_VERIFICATION,
       role_id: ROLE_IDS.TENANT,
+      accepted_terms_at: new Date(),
     };
 
     const user = await User.create(body);
