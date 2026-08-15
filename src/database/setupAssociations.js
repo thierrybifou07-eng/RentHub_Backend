@@ -48,7 +48,7 @@ const setupAssociations = () => {
   Announcement.belongsTo(PropertyType, { foreignKey: "property_type_id" });
 
   AnnouncementStatus.hasMany(Announcement, { foreignKey: "status_id" });
-  Announcement.belongsTo(AnnouncementStatus, { foreignKey: "status_id" });
+  Announcement.belongsTo(AnnouncementStatus, { foreignKey: "status_id", as: "status" });
 
   City.hasMany(Announcement, { foreignKey: "city_id" });
   Announcement.belongsTo(City, { foreignKey: "city_id" });

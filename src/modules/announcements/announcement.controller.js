@@ -1,5 +1,5 @@
 import { Op, Sequelize } from "sequelize";
-import { Announcement, Media, MediaType, City, PropertyType, User } from "../../database/models/index.js";
+import { Announcement, Media, MediaType, City, PropertyType, User, AnnouncementStatus } from "../../database/models/index.js";
 import ANNOUNCEMENT_STATUS from "./announcementStatus.js";
 import MEDIA_TYPE_CODES from "../media/mediaType.js";
 import { verifyToken } from "../auth/jwt.js";
@@ -285,6 +285,20 @@ export const delete_ = async (req, res) => {
     }
 };
 
+export const adminDelete = async (req, res) => {
+    try {
+        const announcement = await Announcement.findByPk(req.params.id, { paranoid: false });
+
+        if (!announcement) return res.status(404).json(notFound("Announcement not found"));
+
+        await Announcement.destroy({ where: { id: announcement.id }, force: true });
+
+        return res.status(200).json(deleted("Announcement deleted successfully"));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};
+
 /**
  * Owner archives their own ACTIVE or RENTED announcement.
  * An archived announcement is hidden from public listings.
@@ -357,11 +371,22 @@ export const getPending = async (req, res) => {
         const limit = parseInt(req.query.limit) || 20;
         const offset = (page - 1) * limit;
 
+        const where = {};
+        if (req.query.status && ANNOUNCEMENT_STATUS[req.query.status] !== undefined) {
+            where.status_id = ANNOUNCEMENT_STATUS[req.query.status];
+        } else {
+            where.status_id = ANNOUNCEMENT_STATUS.PENDING_REVIEW;
+        }
+
         const { count, rows } = await Announcement.findAndCountAll({
-            where: { status_id: ANNOUNCEMENT_STATUS.PENDING_REVIEW },
-            include: announcementsInclude,
+            where,
+            include: [
+                ...announcementsInclude,
+                { model: User, as: "owner", attributes: ["id", "firstname", "lastname", "email"] },
+                { model: AnnouncementStatus, as: "status", attributes: ["id", "code", "label"] },
+            ],
             attributes: { include: [favoritesCountAttr] },
-            order: [["createdAt", "ASC"]],
+            order: [["createdAt", "DESC"]],
             limit,
             offset,
             distinct: true,

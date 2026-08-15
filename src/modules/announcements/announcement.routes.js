@@ -6,6 +6,7 @@ import {
     create,
     update,
     delete_,
+    adminDelete,
     archiveAnnouncement,
     resubmitAnnouncement,
     getPending,
@@ -53,6 +54,7 @@ router.get("/me", authenticate, userHasVerifiedEmail, userIsActive, validate(myA
 router.get("/admin/pending", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, getPending);
 router.put("/admin/:id/approve", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, parseIdParam, approve);
 router.put("/admin/:id/reject", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, parseIdParam, validate(rejectAnnouncementSchema), reject);
+router.delete("/admin/:id", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, parseIdParam, adminDelete);
 
 // Public detail
 router.get("/:id", parseIdParam, getById);

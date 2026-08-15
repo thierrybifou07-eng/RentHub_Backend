@@ -162,16 +162,18 @@ export const manageAnnouncement = async (req, res) => {
         await announcement.save();
 
         let emailSent = false;
-        try {
-            const user = await User.findByPk(announcement.user_id);
-            await sendTemplateEmail(user.email, "Votre annonce à été acceptée", "announcementApproved", {
-                username: `${user.lastname} ${user.firstname}`,
-                heading: "Votre annonce à été acceptée",
-                announcementTitle: announcement.title,
-            });
-            emailSent = true
-        } catch (e) {
-            console.error(e.message);
+        if (newStatusId === ANNOUNCEMENT_STATUS.ACTIVE) {
+            try {
+                const user = await User.findByPk(announcement.user_id);
+                await sendTemplateEmail(user.email, "Votre annonce à été acceptée", "announcementApproved", {
+                    username: `${user.lastname} ${user.firstname}`,
+                    heading: "Votre annonce à été acceptée",
+                    announcementTitle: announcement.title,
+                });
+                emailSent = true
+            } catch (e) {
+                console.error(e.message);
+            }
         }
         return res.status(200).json({ ...updated("Announcement status updated successfully", announcement), emailSent });
     } catch (err) {
