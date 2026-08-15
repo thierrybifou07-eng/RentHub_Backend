@@ -346,7 +346,9 @@ export const getUsers = async (req, res) => {
 
 export const getUserById = async (req, res) => {
     try {
-        const user = await User.findByPk(req.params.id);
+        const user = await User.findByPk(req.params.id, {
+            attributes: { include: ["createdAt"] },
+        });
 
         if (!user) return res.status(404).json(notFound("User not found"));
 

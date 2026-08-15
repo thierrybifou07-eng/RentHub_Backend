@@ -157,7 +157,7 @@ export const dismissReport = async (req, res) => {
 
         if (!report) return res.status(404).json(notFound("Report not found"));
 
-        if (report.status_id !== 1) {
+        if (![1, 2].includes(report.status_id)) {
             return res.status(400).json(badRequest("Report has already been processed"));
         }
 
@@ -191,7 +191,7 @@ export const takeActionOnReport = async (req, res) => {
 
         if (!report) return res.status(404).json(notFound("Report not found"));
 
-        if (report.status_id !== 1) {
+        if (![1, 2].includes(report.status_id)) {
             return res.status(400).json(badRequest("Report has already been processed"));
         }
 
