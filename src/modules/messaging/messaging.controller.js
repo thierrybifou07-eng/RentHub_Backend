@@ -1,5 +1,5 @@
 import { Op } from "sequelize";
-import { Conversation, Message, Announcement, User } from "../../database/models/index.js";
+import { Conversation, Message, Announcement, User, Media, MediaType } from "../../database/models/index.js";
 import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
 import { getIO } from "../../realtime/socket.js";
 import { notify } from "../notifications/notification.helpers.js";
@@ -23,6 +23,21 @@ const handleServerError = (res, err) => {
 
 const participantCheck = (conversation, userId) => {
     return conversation.tenant_id === userId || conversation.owner_id === userId;
+};
+
+// Avatar USER_AVATAR d'un utilisateur (média polymorphique mediable_type = "User").
+const avatarInclude = {
+    model: Media,
+    required: false,
+    attributes: ["id", "url", "is_primary"],
+    include: [
+        {
+            model: MediaType,
+            required: true,
+            where: { code: "USER_AVATAR" },
+            attributes: ["id", "code"],
+        },
+    ],
 };
 
 export const startConversation = async (req, res) => {
@@ -123,8 +138,8 @@ export const getMyConversations = async (req, res) => {
             },
             include: [
                 { model: Announcement, attributes: ["id", "title", "price", "status_id"] },
-                { model: User, as: "tenant", attributes: ["id", "firstname", "lastname"] },
-                { model: User, as: "owner", attributes: ["id", "firstname", "lastname"] },
+                { model: User, as: "tenant", attributes: ["id", "firstname", "lastname"], include: [avatarInclude] },
+                { model: User, as: "owner", attributes: ["id", "firstname", "lastname"], include: [avatarInclude] },
             ],
             order: [["updatedAt", "DESC"]],
             limit,
@@ -254,7 +269,7 @@ export const getMessages = async (req, res) => {
         const { count, rows } = await Message.findAndCountAll({
             where: { conversation_id: conversationId },
             include: [
-                { model: User, as: "sender", attributes: ["id", "firstname", "lastname"] },
+                { model: User, as: "sender", attributes: ["id", "firstname", "lastname"], include: [avatarInclude] },
             ],
             order: [["createdAt", "ASC"]],
             limit,
