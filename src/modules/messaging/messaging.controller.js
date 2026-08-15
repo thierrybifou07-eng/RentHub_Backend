@@ -26,7 +26,8 @@ const participantCheck = (conversation, userId) => {
 };
 
 // Avatar USER_AVATAR d'un utilisateur (média polymorphique mediable_type = "User").
-const avatarInclude = {
+// Fabrique : un objet neuf à chaque appel pour éviter les collisions d'alias Sequelize.
+const avatarInclude = () => ({
     model: Media,
     required: false,
     attributes: ["id", "url", "is_primary"],
@@ -38,7 +39,7 @@ const avatarInclude = {
             attributes: ["id", "code"],
         },
     ],
-};
+});
 
 export const startConversation = async (req, res) => {
     try {
@@ -138,8 +139,8 @@ export const getMyConversations = async (req, res) => {
             },
             include: [
                 { model: Announcement, attributes: ["id", "title", "price", "status_id"] },
-                { model: User, as: "tenant", attributes: ["id", "firstname", "lastname"], include: [avatarInclude] },
-                { model: User, as: "owner", attributes: ["id", "firstname", "lastname"], include: [avatarInclude] },
+                { model: User, as: "tenant", attributes: ["id", "firstname", "lastname"], include: [avatarInclude()] },
+                { model: User, as: "owner", attributes: ["id", "firstname", "lastname"], include: [avatarInclude()] },
             ],
             order: [["updatedAt", "DESC"]],
             limit,
@@ -269,7 +270,7 @@ export const getMessages = async (req, res) => {
         const { count, rows } = await Message.findAndCountAll({
             where: { conversation_id: conversationId },
             include: [
-                { model: User, as: "sender", attributes: ["id", "firstname", "lastname"], include: [avatarInclude] },
+                { model: User, as: "sender", attributes: ["id", "firstname", "lastname"], include: [avatarInclude()] },
             ],
             order: [["createdAt", "ASC"]],
             limit,
