@@ -24,6 +24,7 @@ import {
     updateAnnouncementSchema,
     announcementFilterSchema,
     myAnnouncementsFilterSchema,
+    pendingAnnouncementsFilterSchema,
     rejectAnnouncementSchema,
 } from "./announcement.schema.js";
 import { isAdmin } from "../admin/admin.middleware.js";
@@ -51,7 +52,7 @@ router.get("/", validate(announcementFilterSchema, "query"), getAll);
 router.get("/me", authenticate, userHasVerifiedEmail, userIsActive, validate(myAnnouncementsFilterSchema, "query"), getMyAnnouncements);
 
 // Admin — pending queue & moderation
-router.get("/admin/pending", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, getPending);
+router.get("/admin/pending", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, validate(pendingAnnouncementsFilterSchema, "query"), getPending);
 router.put("/admin/:id/approve", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, parseIdParam, approve);
 router.put("/admin/:id/reject", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, parseIdParam, validate(rejectAnnouncementSchema), reject);
 router.delete("/admin/:id", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, parseIdParam, adminDelete);

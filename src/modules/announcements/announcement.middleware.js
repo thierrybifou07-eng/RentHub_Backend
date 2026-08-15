@@ -4,7 +4,7 @@ import { forbidden, notFound } from "../../shared/helpers/response.helpers.js";
 export async function isOwner(req, res, next) {
     try {
         const announcement = await Announcement.findByPk(req.params.id, {
-            attributes: ["id", "user_id"],
+            attributes: ["id", "user_id", "status_id"],
             paranoid: false,
         });
 

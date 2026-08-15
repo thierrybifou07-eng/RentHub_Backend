@@ -72,3 +72,15 @@ export const rejectAnnouncementSchema = Joi.object({
         "string.max": "Reason cannot exceed {#limit} characters",
     }),
 }).options({ stripUnknown: true });
+
+// Query schema for GET /announcements/admin/pending (admin moderation list)
+export const pendingAnnouncementsFilterSchema = Joi.object({
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(20),
+    status: Joi.string()
+        .valid("ACTIVE", "PENDING_REVIEW", "RENTED", "ARCHIVED", "REJECTED")
+        .optional()
+        .messages({
+            "any.only": "status must be a valid announcement status",
+        }),
+}).options({ stripUnknown: true });

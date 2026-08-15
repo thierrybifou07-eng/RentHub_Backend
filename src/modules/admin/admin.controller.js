@@ -65,7 +65,7 @@ export const getEvolution = async (req, res) => {
     try {
         const since = thirtyDaysAgo();
 
-        const [usersByDay, announcementsByDay] = await Promise.all([
+        const [usersByDay, announcementsByDay, reportsByDay, subscriptionsByDay] = await Promise.all([
             User.findAll({
                 attributes: [[fn("DATE", col("createdAt")), "date"], [fn("COUNT", col("id")), "count"]],
                 where: { createdAt: { [Op.gte]: since } },
@@ -81,11 +81,27 @@ export const getEvolution = async (req, res) => {
                 raw: true,
                 paranoid: false,
             }),
+            Report.findAll({
+                attributes: [[fn("DATE", col("createdAt")), "date"], [fn("COUNT", col("id")), "count"]],
+                where: { createdAt: { [Op.gte]: since } },
+                group: [fn("DATE", col("createdAt"))],
+                order: [[fn("DATE", col("createdAt")), "ASC"]],
+                raw: true,
+            }),
+            UserSubscription.findAll({
+                attributes: [[fn("DATE", col("createdAt")), "date"], [fn("COUNT", col("id")), "count"]],
+                where: { createdAt: { [Op.gte]: since } },
+                group: [fn("DATE", col("createdAt"))],
+                order: [[fn("DATE", col("createdAt")), "ASC"]],
+                raw: true,
+            }),
         ]);
 
         return res.status(200).json(success("Evolution retrieved successfully", {
             users: usersByDay,
             announcements: announcementsByDay,
+            reports: reportsByDay,
+            subscriptions: subscriptionsByDay,
         }));
     } catch (err) {
         return handleServerError(res, err);
