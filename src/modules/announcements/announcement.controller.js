@@ -1,5 +1,5 @@
 import { Op, Sequelize } from "sequelize";
-import { Announcement, Media, MediaType, City, PropertyType, User, AnnouncementStatus } from "../../database/models/index.js";
+import { Announcement, Media, MediaType, City, PropertyType, User, AnnouncementStatus, SubscriptionPlan, UserSubscription } from "../../database/models/index.js";
 import ANNOUNCEMENT_STATUS from "./announcementStatus.js";
 import MEDIA_TYPE_CODES from "../media/mediaType.js";
 import { verifyToken } from "../auth/jwt.js";
@@ -28,6 +28,25 @@ const favoritesCountAttr = [
     Sequelize.literal(`(SELECT COUNT(*) FROM favorites WHERE favorites.announcement_id = Announcement.id)`),
     'favoritesCount'
 ];
+
+const FREE_PLAN_LIMITS = { max_media: 5, max_active_announcements: 5 };
+
+/**
+ * Returns the media / active-announcement limits derived from the user's
+ * current ACTIVE subscription plan, falling back to the FREE plan limits.
+ */
+const getUserPlanLimits = async (userId) => {
+    const subscription = await UserSubscription.findOne({
+        where: { user_id: userId, status: "ACTIVE" },
+        include: [{ model: SubscriptionPlan, attributes: ["features", "priority"] }],
+        order: [["createdAt", "DESC"]],
+    });
+    const features = subscription?.SubscriptionPlan?.features || subscription?.plan?.features || {};
+    return {
+        max_media: features.max_media ?? FREE_PLAN_LIMITS.max_media,
+        max_active_announcements: features.max_active_announcements ?? FREE_PLAN_LIMITS.max_active_announcements,
+    };
+};
 
 const announcementsInclude = [
     { model: City, as: "City", attributes: ["id", "name"] },
@@ -193,6 +212,19 @@ export const getMyAnnouncements = async (req, res) => {
 
 export const create = async (req, res) => {
     try {
+        const { max_media: maxMedia, max_active_announcements: maxActiveAnnouncements } = await getUserPlanLimits(req.user.id);
+
+        const activeCount = await Announcement.count({
+            where: { user_id: req.user.id, status_id: ANNOUNCEMENT_STATUS.ACTIVE },
+        });
+        if (activeCount >= maxActiveAnnouncements) {
+            return res.status(400).json(badRequest(`You have reached the limit of ${maxActiveAnnouncements} active announcements for your plan.`));
+        }
+
+        if (req.files && req.files.length > maxMedia) {
+            return res.status(400).json(badRequest(`Your plan allows a maximum of ${maxMedia} photos per announcement.`));
+        }
+
         const body = {
             ...req.body,
             user_id: req.user.id,
@@ -372,10 +404,8 @@ export const getPending = async (req, res) => {
         const offset = (page - 1) * limit;
 
         const where = {};
-        if (req.query.status && ANNOUNCEMENT_STATUS[req.query.status] !== undefined) {
+        if (req.query.status && req.query.status !== "all" && ANNOUNCEMENT_STATUS[req.query.status] !== undefined) {
             where.status_id = ANNOUNCEMENT_STATUS[req.query.status];
-        } else {
-            where.status_id = ANNOUNCEMENT_STATUS.PENDING_REVIEW;
         }
 
         const { count, rows } = await Announcement.findAndCountAll({

@@ -78,7 +78,7 @@ export const pendingAnnouncementsFilterSchema = Joi.object({
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(20),
     status: Joi.string()
-        .valid("ACTIVE", "PENDING_REVIEW", "RENTED", "ARCHIVED", "REJECTED")
+        .valid("all", "ACTIVE", "PENDING_REVIEW", "RENTED", "ARCHIVED", "REJECTED")
         .optional()
         .messages({
             "any.only": "status must be a valid announcement status",
