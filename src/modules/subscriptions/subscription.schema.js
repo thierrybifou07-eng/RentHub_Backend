@@ -8,6 +8,9 @@ export const subscribeSchema = Joi.object({
     paymentReference: Joi.string().min(1).max(255).optional().allow("").messages({
         "string.max": "Payment reference cannot exceed 255 characters",
     }),
+    simulated: Joi.boolean().optional().messages({
+        "boolean.base": "simulated must be a boolean",
+    }),
 }).options({ stripUnknown: true });
 
 export const adminNoteSchema = Joi.object({

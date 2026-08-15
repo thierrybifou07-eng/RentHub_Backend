@@ -29,7 +29,7 @@ export const getPlans = async (req, res) => {
 
 export const subscribe = async (req, res) => {
     try {
-        const { planId, paymentReference } = req.body;
+        const { planId, paymentReference, simulated } = req.body;
 
         if (req.user.role !== ROLE_IDS.OWNER && req.user.role !== ROLE_IDS.AGENCY) {
             return res.status(403).json(badRequest("Only owners and agencies can subscribe"));
@@ -54,6 +54,55 @@ export const subscribe = async (req, res) => {
         });
         if (pendingSubscription) {
             return res.status(400).json(badRequest("You already have a pending subscription request"));
+        }
+
+        if (simulated) {
+            // Paiement simulé : l'abonnement est activé immédiatement.
+            const startDate = new Date();
+            const endDate = new Date(startDate);
+            endDate.setDate(endDate.getDate() + plan.duration_days);
+
+            const subscription = await UserSubscription.create({
+                user_id: req.user.id,
+                plan_id: planId,
+                status: "ACTIVE",
+                payment_reference: paymentReference || "SIMULATION",
+                start_date: startDate.toISOString().slice(0, 10),
+                end_date: endDate.toISOString().slice(0, 10),
+            });
+
+            try {
+                const user = await User.findByPk(req.user.id, { attributes: ["email", "lastname", "firstname"] });
+                if (user) {
+                    await sendTemplateEmail(user.email, "Abonnement activé", "subscriptionActivated", {
+                        username: `${user.lastname} ${user.firstname}`,
+                        planLabel: plan.label,
+                        endDate: endDate.toISOString().slice(0, 10),
+                        appUrl: process.env.APP_URL || "https://renthub.fr",
+                        heading: "Abonnement activé"
+                    });
+                }
+            } catch (e) {
+                console.error(e.message);
+            }
+
+            await notify(subscription.user_id, {
+                type: "subscription_activated",
+                title: "Abonnement activé",
+                body: `${plan.label} — actif jusqu'au ${endDate.toISOString().slice(0, 10)}`,
+                data: { subscriptionId: subscription.id, planId: plan.id },
+                actorId: req.user.id,
+            });
+
+            await notifyAdmins({
+                type: "new_subscription_request",
+                title: "Abonnement activé (paiement simulé)",
+                body: plan.label,
+                data: { subscriptionId: subscription.id, planId },
+                actorId: req.user.id,
+            });
+
+            return res.status(201).json(created("Subscription activated successfully (simulated payment)", subscription));
         }
 
         const subscription = await UserSubscription.create({
