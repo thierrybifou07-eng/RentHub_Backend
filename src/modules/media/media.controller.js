@@ -2,6 +2,7 @@ import { existsSync, unlinkSync } from "node:fs";
 import { Media, MediaType, Announcement } from "../../database/models/index.js";
 import MEDIA_TYPE_CODES from "./mediaType.js";
 import { toPublicUploadUrl, publicUrlToDiskPath } from "../../shared/helpers/helpers.js";
+import { optimizeImage } from "../../shared/helpers/imageOptimizer.js";
 import {
     success,
     created,
@@ -55,6 +56,13 @@ export const uploadAvatar = async (req, res) => {
         }
 
         const mediaType = await MediaType.findOne({ where: { code: MEDIA_TYPE_CODES.USER_AVATAR } });
+
+        const optimized = await optimizeImage(req.file.path);
+        if (optimized) {
+            req.file.path = optimized.path;
+            req.file.size = optimized.size;
+            req.file.mimetype = optimized.mime;
+        }
 
         const media = await Media.create({
             media_type_id: mediaType.id,
@@ -113,6 +121,15 @@ export const uploadAnnouncementImages = async (req, res) => {
             removeUploadedFiles(req.files);
             return res.status(400).json({ status: "fail", message: `Votre plan autorise un maximum de ${maxMedia} photos par annonce.` });
         }
+
+        await Promise.all(req.files.map(async (file) => {
+            const optimized = await optimizeImage(file.path);
+            if (optimized) {
+                file.path = optimized.path;
+                file.size = optimized.size;
+                file.mimetype = optimized.mime;
+            }
+        }));
 
         const mediaItems = req.files.map((file, index) => ({
             media_type_id: mediaType.id,

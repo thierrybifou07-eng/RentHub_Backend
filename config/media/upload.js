@@ -3,6 +3,8 @@ import { extname, resolve } from "node:path";
 import { existsSync, mkdirSync } from "node:fs";
 import MediaType from "../../src/database/models/media-type.model.js";
 
+const VIDEO_FILE_SIZE_LIMIT = 20 * 1024 * 1024;
+
 const mediaTypeCache = {};
 
 async function getMediaType(code) {
@@ -47,7 +49,7 @@ export default async function createUpload(mediaTypeCode, pathResolver) {
     storage,
     fileFilter,
     limits: {
-      fileSize: mediaType.max_file_size,
+      fileSize: mediaTypeCode === "ANNOUNCEMENT_VIDEO" ? VIDEO_FILE_SIZE_LIMIT : mediaType.max_file_size,
       files: mediaType.max_files,
     },
   });
