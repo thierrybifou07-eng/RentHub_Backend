@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import compression from "compression";
 import { createServer } from "node:http";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,9 +20,11 @@ const app = express();
 
 app.use(cors(corsOptions));
 
+app.use(compression({ threshold: 1024 }));
+
 app.post("/api/v1/stripe/webhook", express.raw({ type: "application/json" }), handleWebhook);
 
-app.use("/uploads", express.static(resolve(__dirname, "../public/uploads")));
+app.use("/uploads", express.static(resolve(__dirname, "../public/uploads"), { maxAge: "30d", immutable: true }));
 
 app.use("/api/v1", MediaRouter);
 
