@@ -10,12 +10,24 @@ import {
     forbidden,
 } from "../../shared/helpers/response.helpers.js";
 import { ROLE_IDS } from "../../../config/auth/app.js";
+import { getUserPlanLimits } from "../subscriptions/subscriptionQuotas.js";
 
 const handleServerError = (res, err) => {
     console.error(err);
     return res
         .status(500)
         .json({ status: "error", message: process.env.NODE_ENV === "production" ? "Internal server error" : err.message });
+};
+
+const removeUploadedFiles = (files) => {
+    if (!Array.isArray(files)) return;
+    for (const file of files) {
+        if (file?.path) {
+            try {
+                if (existsSync(file.path)) unlinkSync(file.path);
+            } catch (_) { /* ignore */ }
+        }
+    }
 };
 
 const isAdmin = (user) => user.role === ROLE_IDS.ADMIN || user.role === ROLE_IDS.ROOT;
@@ -95,6 +107,12 @@ export const uploadAnnouncementImages = async (req, res) => {
         const existingMediaCount = await Media.count({
             where: { mediable_id: announcement.id, mediable_type: "Announcement", media_type_id: mediaType.id },
         });
+
+        const { max_media: maxMedia } = await getUserPlanLimits(req.user.id);
+        if (existingMediaCount + req.files.length > maxMedia) {
+            removeUploadedFiles(req.files);
+            return res.status(400).json({ status: "fail", message: `Votre plan autorise un maximum de ${maxMedia} photos par annonce.` });
+        }
 
         const mediaItems = req.files.map((file, index) => ({
             media_type_id: mediaType.id,

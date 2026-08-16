@@ -29,7 +29,7 @@ router.delete("/avatar", authenticate, userHasVerifiedEmail, userIsActive, delet
 
 router.post("/announcements/:id/images", authenticate, userHasVerifiedEmail, userIsActive, parseIdParam, isAnnouncementOwner, async (req, res, next) => {
     const upload = await createUpload(MEDIA_TYPE_CODES.ANNOUNCEMENT_IMAGE, (r) => String(r.params.id));
-    upload.array("images", 10)(req, res, (err) => {
+    upload.array("images", 50)(req, res, (err) => {
         if (err) return res.status(400).json({ status: "fail", message: err.message });
         next();
     });

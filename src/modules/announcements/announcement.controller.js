@@ -1,11 +1,13 @@
 import { Op, Sequelize } from "sequelize";
-import { Announcement, Media, MediaType, City, PropertyType, User, AnnouncementStatus, SubscriptionPlan, UserSubscription } from "../../database/models/index.js";
+import { existsSync, unlinkSync } from "node:fs";
+import { Announcement, Media, MediaType, City, PropertyType, User, AnnouncementStatus } from "../../database/models/index.js";
 import ANNOUNCEMENT_STATUS from "./announcementStatus.js";
 import MEDIA_TYPE_CODES from "../media/mediaType.js";
 import { verifyToken } from "../auth/jwt.js";
 import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
 import { notify, notifyAdmins } from "../notifications/notification.helpers.js";
 import { toPublicUploadUrl } from "../../shared/helpers/helpers.js";
+import { getUserPlanLimits, countActiveAnnouncements } from "../subscriptions/subscriptionQuotas.js";
 import {
     success,
     created,
@@ -24,29 +26,21 @@ const handleServerError = (res, err) => {
         .json({ status: "error", message: process.env.NODE_ENV === "production" ? "Internal server error" : err.message });
 };
 
+const removeUploadedFiles = (files) => {
+    if (!Array.isArray(files)) return;
+    for (const file of files) {
+        if (file?.path) {
+            try {
+                if (existsSync(file.path)) unlinkSync(file.path);
+            } catch (_) { /* ignore */ }
+        }
+    }
+};
+
 const favoritesCountAttr = [
     Sequelize.literal(`(SELECT COUNT(*) FROM favorites WHERE favorites.announcement_id = Announcement.id)`),
     'favoritesCount'
 ];
-
-const FREE_PLAN_LIMITS = { max_media: 5, max_active_announcements: 5 };
-
-/**
- * Returns the media / active-announcement limits derived from the user's
- * current ACTIVE subscription plan, falling back to the FREE plan limits.
- */
-const getUserPlanLimits = async (userId) => {
-    const subscription = await UserSubscription.findOne({
-        where: { user_id: userId, status: "ACTIVE" },
-        include: [{ model: SubscriptionPlan, attributes: ["features", "priority"] }],
-        order: [["createdAt", "DESC"]],
-    });
-    const features = subscription?.SubscriptionPlan?.features || subscription?.plan?.features || {};
-    return {
-        max_media: features.max_media ?? FREE_PLAN_LIMITS.max_media,
-        max_active_announcements: features.max_active_announcements ?? FREE_PLAN_LIMITS.max_active_announcements,
-    };
-};
 
 const announcementsInclude = [
     { model: City, as: "City", attributes: ["id", "name"] },
@@ -214,15 +208,15 @@ export const create = async (req, res) => {
     try {
         const { max_media: maxMedia, max_active_announcements: maxActiveAnnouncements } = await getUserPlanLimits(req.user.id);
 
-        const activeCount = await Announcement.count({
-            where: { user_id: req.user.id, status_id: ANNOUNCEMENT_STATUS.ACTIVE },
-        });
+        const activeCount = await countActiveAnnouncements(req.user.id);
         if (activeCount >= maxActiveAnnouncements) {
-            return res.status(400).json(badRequest(`You have reached the limit of ${maxActiveAnnouncements} active announcements for your plan.`));
+            removeUploadedFiles(req.files);
+            return res.status(400).json(badRequest(`Vous avez atteint la limite de ${maxActiveAnnouncements} annonces actives pour votre plan.`));
         }
 
         if (req.files && req.files.length > maxMedia) {
-            return res.status(400).json(badRequest(`Your plan allows a maximum of ${maxMedia} photos per announcement.`));
+            removeUploadedFiles(req.files);
+            return res.status(400).json(badRequest(`Votre plan autorise un maximum de ${maxMedia} photos par annonce.`));
         }
 
         const body = {
@@ -444,6 +438,12 @@ export const approve = async (req, res) => {
 
         if (announcement.status_id !== ANNOUNCEMENT_STATUS.PENDING_REVIEW) {
             return res.status(400).json(badRequest("Announcement is not in pending review status"));
+        }
+
+        const ownerLimits = await getUserPlanLimits(announcement.user_id);
+        const activeCount = await countActiveAnnouncements(announcement.user_id);
+        if (activeCount >= ownerLimits.max_active_announcements) {
+            return res.status(400).json(badRequest(`Impossible d'approuver : le propriétaire a atteint la limite de ${ownerLimits.max_active_announcements} annonces actives pour son plan.`));
         }
 
         await announcement.update({ status_id: ANNOUNCEMENT_STATUS.ACTIVE });

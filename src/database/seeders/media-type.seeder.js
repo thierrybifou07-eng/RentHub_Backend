@@ -22,11 +22,11 @@ const seedMediaTypes = async () => {
       allowed_extensions: ["jpg", "jpeg", "png", "webp", "gif"],
       allowed_mimetypes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
       max_file_size: 10 * 1024 * 1024,
-      max_files: 10,
+      max_files: 50,
     },
     {
       code: "ANNOUNCEMENT_VIDEO",
-      label: "Vidéo d'annonce",
+      label: "Vidï¿½o d'annonce",
       allowed_extensions: ["mp4", "webm", "mov"],
       allowed_mimetypes: ["video/mp4", "video/webm", "video/quicktime"],
       max_file_size: 100 * 1024 * 1024,

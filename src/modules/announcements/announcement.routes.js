@@ -39,7 +39,7 @@ const getUpload = async () => {
 
 const mediaUploadMiddleware = async (req, res, next) => {
     const upload = await getUpload();
-    upload.array("media", 10)(req, res, (err) => {
+    upload.array("media", 50)(req, res, (err) => {
         if (err) return res.status(400).json({ status: "fail", message: err.message });
         next();
     });
