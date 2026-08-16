@@ -3,6 +3,7 @@ import {
     success,
     paginated,
     updated,
+    deleted,
     notFound,
 } from "../../shared/helpers/response.helpers.js";
 
@@ -20,7 +21,7 @@ export const getMyNotifications = async (req, res) => {
         const offset = (page - 1) * limit;
 
         const { count, rows } = await Notification.findAndCountAll({
-            where: { user_id: req.user.id },
+            where: { user_id: req.user.id, is_read: false },
             include: [
                 { model: User, as: "actor", attributes: ["id", "firstname", "lastname"] },
             ],
@@ -75,6 +76,34 @@ export const markAllNotificationsRead = async (req, res) => {
         );
 
         return res.status(200).json(updated("All notifications marked as read", { count: affectedCount }));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};
+
+export const deleteNotification = async (req, res) => {
+    try {
+        const notification = await Notification.findOne({
+            where: { id: req.params.id, user_id: req.user.id },
+        });
+
+        if (!notification) return res.status(404).json(notFound("Notification not found"));
+
+        await notification.destroy();
+
+        return res.status(200).json(deleted("Notification deleted", { id: notification.id }));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};
+
+export const deleteAllNotifications = async (req, res) => {
+    try {
+        const count = await Notification.destroy({
+            where: { user_id: req.user.id },
+        });
+
+        return res.status(200).json(deleted("All notifications deleted", { count }));
     } catch (err) {
         return handleServerError(res, err);
     }
