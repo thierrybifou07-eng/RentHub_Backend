@@ -1,5 +1,5 @@
 import { Op } from "sequelize";
-import { Conversation, Message, Announcement, User, Media, MediaType } from "../../database/models/index.js";
+import { Conversation, Message, Announcement, User, Media, MediaType, City } from "../../database/models/index.js";
 import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
 import { getIO } from "../../realtime/socket.js";
 import { notify } from "../notifications/notification.helpers.js";
@@ -138,7 +138,18 @@ export const getMyConversations = async (req, res) => {
                 ],
             },
             include: [
-                { model: Announcement, attributes: ["id", "title", "price", "status_id"] },
+                {
+                    model: Announcement,
+                    attributes: ["id", "title", "price", "status_id"],
+                    include: [
+                        { model: City, attributes: ["id", "name"] },
+                        {
+                            model: Media,
+                            attributes: ["id", "url", "media_type_id"],
+                            include: [{ model: MediaType, attributes: ["code"] }],
+                        },
+                    ],
+                },
                 { model: User, as: "tenant", attributes: ["id", "firstname", "lastname"], include: [avatarInclude()] },
                 { model: User, as: "owner", attributes: ["id", "firstname", "lastname"], include: [avatarInclude()] },
             ],
@@ -155,6 +166,7 @@ export const getMyConversations = async (req, res) => {
         const ids = filterRowns.map((c) => c.id);
         let unreadMap = {};
         let lastMessageAtMap = {};
+        let lastMessageMap = {};
 
         if (ids.length > 0) {
             const unreadRows = await Message.findAll({
@@ -173,20 +185,22 @@ export const getMyConversations = async (req, res) => {
 
             const lastRows = await Message.findAll({
                 where: { conversation_id: { [Op.in]: ids } },
-                attributes: [
-                    "conversation_id",
-                    [Message.sequelize.fn("MAX", Message.sequelize.col("createdAt")), "last_message_at"],
-                ],
-                group: ["conversation_id"],
-                raw: true,
+                order: [["createdAt", "DESC"]],
+                attributes: ["conversation_id", "content", "createdAt", "sender_id", "read_at"],
             });
+
+            // Dernier message (le plus récent) par conversation, le reste de la page
+            lastMessageMap = lastRows.reduce((acc, row) => {
+                if (!acc[row.conversation_id]) acc[row.conversation_id] = row.toJSON();
+                return acc;
+            }, {});
 
             unreadMap = unreadRows.reduce((acc, row) => {
                 acc[row.conversation_id] = Number(row.unread_count) || 0;
                 return acc;
             }, {});
             lastMessageAtMap = lastRows.reduce((acc, row) => {
-                acc[row.conversation_id] = row.last_message_at;
+                acc[row.conversation_id] = row.createdAt;
                 return acc;
             }, {});
         }
@@ -194,7 +208,8 @@ export const getMyConversations = async (req, res) => {
         const result = filterRowns.map((c) => ({
             ...c.toJSON(),
             unread_count: unreadMap[c.id] || 0,
-            last_message_at: lastMessageAtMap[c.id] || null,
+            last_message_at: lastMessageMap[c.id]?.createdAt || null,
+            last_message: lastMessageMap[c.id] || null,
         }));
 
         return res.status(200).json(paginated("Conversations retrieved successfully", result, {
@@ -272,7 +287,7 @@ export const getMessages = async (req, res) => {
             include: [
                 { model: User, as: "sender", attributes: ["id", "firstname", "lastname"], include: [avatarInclude()] },
             ],
-            order: [["createdAt", "ASC"]],
+            order: [["createdAt", "DESC"]],
             limit,
             offset,
         });
