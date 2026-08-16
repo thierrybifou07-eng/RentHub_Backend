@@ -9,9 +9,15 @@ const seedPropertyTypes = async () => {
 
   await PropertyType.bulkCreate([
     { code: "APARTMENT", label: "Appartement" },
+    { code: "ROOM", label: "Chambre" },
     { code: "HOUSE", label: "Maison" },
     { code: "STUDIO", label: "Studio" },
-    { code: "COMMERCIAL", label: "Local commercial" },
+    { code: "COMMERCIAL_LOCAL", label: "Local commercial" },
+    { code: "VILLA", label: "Villa" },
+    { code: "WAREHOUSE", label: "Entrepôt" },
+    { code: "OFFICE", label: "Bureau" },
+    { code: "SHOP", label: "Boutique" },
+    { code: "GODOWN", label: "Magasin" },
   ]);
 
   console.log("Property types seeded successfully.");

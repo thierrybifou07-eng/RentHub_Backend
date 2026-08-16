@@ -33,7 +33,7 @@ const seedUsers = async () => {
 
   const users = [admin];
 
-  for (let i = 0; i < 19; i++) {
+  for (let i = 0; i < 9; i++) {
     const gender = faker.person.sexType();
     users.push({
       firstname: faker.person.firstName(gender),

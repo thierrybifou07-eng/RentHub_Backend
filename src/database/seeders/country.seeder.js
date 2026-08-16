@@ -9,6 +9,15 @@ const seedCountries = async () => {
 
   const countries = [
     { name: "Cameroun" },
+    { name: "Togo" },
+    { name: "Benin" },
+    { name: "Burkina Faso" },
+    { name: "Cote d'Ivoire" },
+    { name: "Mali" },
+    { name: "Niger" },
+    { name: "Senegal" },
+    { name: "Chad" },
+    { name: "Gabon" },
   ];
 
   await Country.bulkCreate(countries);

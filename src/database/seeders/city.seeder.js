@@ -17,18 +17,65 @@ const seedCities = async () => {
   const deptMap = {};
   departments.forEach(d => { deptMap[d.name] = d.id; });
 
-  const cities = [
-    { department_id: deptMap["Centre"], name: "Yaoundé" },
-    { department_id: deptMap["Littoral"], name: "Douala" },
-    { department_id: deptMap["Nord-Ouest"], name: "Bamenda" },
-    { department_id: deptMap["Extrême-Nord"], name: "Maroua" },
-    { department_id: deptMap["Nord"], name: "Garoua" },
-    { department_id: deptMap["Est"], name: "Bertoua" },
-    { department_id: deptMap["Ouest"], name: "Bafoussam" },
-    { department_id: deptMap["Sud"], name: "Kribi" },
-    { department_id: deptMap["Sud-Ouest"], name: "Limbe" },
-    { department_id: deptMap["Sud-Ouest"], name: "Buea" },
-  ];
+  // Fail fast if a department is missing, instead of silently
+  // inserting cities with an undefined department_id.
+  deptNames.forEach((name) => {
+    if (!deptMap[name]) {
+      throw new Error(
+        `Department "${name}" not found. Make sure departments are seeded before cities.`
+      );
+    }
+  });
+
+  const citiesByDepartment = {
+    "Centre": [
+      "Yaoundé", "Mbalmayo", "Obala", "Bafia", "Akonolinga",
+      "Mfou", "Monatélé", "Nanga-Eboko", "Ntui", "Eséka",
+      "Sa'a", "Ngoumou", "Soa", "Bikok", "Ayos"
+    ],
+    "Littoral": [
+      "Douala", "Nkongsamba", "Edéa", "Loum", "Manjo",
+      "Mbanga", "Melong", "Yabassi", "Dibombari", "Penja",
+      "Njombé-Penja"
+    ],
+    "Nord-Ouest": [
+      "Bamenda", "Kumbo", "Wum", "Ndop", "Nkambe",
+      "Fundong", "Mbengwi", "Bafut", "Bali", "Batibo",
+      "Mbiame", "Njikwa"
+    ],
+    "Extrême-Nord": [
+      "Maroua", "Kousséri", "Mokolo", "Yagoua", "Kaélé",
+      "Mora", "Waza", "Méri", "Guidiguis", "Bogo"
+    ],
+    "Nord": [
+      "Garoua", "Guider", "Poli", "Tcholliré", "Figuil",
+      "Pitoa", "Rey-Bouba", "Lagdo"
+    ],
+    "Est": [
+      "Bertoua", "Batouri", "Yokadouma", "Abong-Mbang", "Garoua-Boulaï",
+      "Ndélélé", "Bélabo", "Doumé", "Lomié"
+    ],
+    "Ouest": [
+      "Bafoussam", "Dschang", "Mbouda", "Foumban", "Foumbot",
+      "Bandjoun", "Bangangté", "Bafang"
+    ],
+    "Adamaoua": [
+      "Ngaoundéré", "Meiganga", "Tibati", "Banyo", "Tignère",
+      "Ngaoundal"
+    ],
+    "Sud": [
+      "Ebolowa", "Kribi", "Sangmélima", "Ambam", "Djoum",
+      "Mvangan", "Campo"
+    ],
+    "Sud-Ouest": [
+      "Buea", "Limbe", "Kumba", "Mamfe", "Tiko",
+      "Muyuka", "Idenau", "Fontem", "Ekondo-Titi", "Mundemba"
+    ]
+  };
+
+  const cities = Object.entries(citiesByDepartment).flatMap(([deptName, cityNames]) =>
+    cityNames.map((name) => ({ department_id: deptMap[deptName], name }))
+  );
 
   await City.bulkCreate(cities);
   console.log(`${cities.length} cities seeded successfully.`);

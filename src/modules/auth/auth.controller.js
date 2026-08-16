@@ -422,8 +422,8 @@ export const updateCurrentUser = async (req, res) => {
     const { phone, ...fields } = req.body;
 
     if (phone !== undefined && phone !== null) {
-      const existing = await User.findOne({ where: { phone }, attributes: ["id"] });
-      if (existing) return res.status(409).json(conflict("That phone number is already taken"));
+      const existing = await User.scope('onlyId').findOne({ where: { phone }, attributes: ["id"] });
+      if (existing && existing.id !== req.user.id) return res.status(409).json(conflict("That phone number is already taken"));
     }
 
     if (phone !== undefined) user.phone = phone;

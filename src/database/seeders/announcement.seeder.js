@@ -16,8 +16,8 @@ const IMAGE_COLORS = [
   { primary: "#0B1120", accent: "#EC4899" }, // Deep Blue + Pink
 ];
 
-const IMAGE_DIR = fileURLToPath(new URL("../../../public/uploads/announcement-image/", import.meta.url));
-const UPLOADS_PATH = "public/uploads/announcement-image";
+const IMAGE_DIR = fileURLToPath(new URL("../../../public/uploads/ANNOUNCEMENT_IMAGE/", import.meta.url));
+const UPLOADS_PATH = "public/uploads/ANNOUNCEMENT_IMAGE";
 
 function buildSvg(colors, label, index) {
   const { primary, accent } = colors;
@@ -117,7 +117,7 @@ const seedAnnouncements = async () => {
   const announcements = [];
   const mediaItems = [];
 
-  for (let index = 0; index < 50; index++) {
+  for (let index = 0; index < 9; index++) {
     const propertyType = faker.helpers.arrayElement(propertyTypes);
     const city = faker.helpers.arrayElement(cities);
     const user = faker.helpers.arrayElement(users);
