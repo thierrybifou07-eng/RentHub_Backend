@@ -38,6 +38,25 @@ const isOwnerOf = (media, user) => {
     return false;
 };
 
+/**
+ * Compte l'ensemble des médias (photos + vidéos) attachés à une annonce.
+ * Le quota du plan (`max_media`) s'applique sur ce total combiné.
+ */
+const countAnnouncementMedia = async (announcementId) => {
+    const types = await MediaType.findAll({
+        where: {
+            code: [MEDIA_TYPE_CODES.ANNOUNCEMENT_IMAGE, MEDIA_TYPE_CODES.ANNOUNCEMENT_VIDEO],
+        },
+    });
+    return Media.count({
+        where: {
+            mediable_id: announcementId,
+            mediable_type: "Announcement",
+            media_type_id: types.map((t) => t.id),
+        },
+    });
+};
+
 export const uploadAvatar = async (req, res) => {
 
     try {
@@ -112,14 +131,12 @@ export const uploadAnnouncementImages = async (req, res) => {
 
         const mediaType = await MediaType.findOne({ where: { code: MEDIA_TYPE_CODES.ANNOUNCEMENT_IMAGE } });
 
-        const existingMediaCount = await Media.count({
-            where: { mediable_id: announcement.id, mediable_type: "Announcement", media_type_id: mediaType.id },
-        });
+        const existingMediaCount = await countAnnouncementMedia(announcement.id);
 
         const { max_media: maxMedia } = await getUserPlanLimits(req.user.id);
         if (existingMediaCount + req.files.length > maxMedia) {
             removeUploadedFiles(req.files);
-            return res.status(400).json({ status: "fail", message: `Votre plan autorise un maximum de ${maxMedia} photos par annonce.` });
+            return res.status(400).json({ status: "fail", message: `Votre plan autorise un maximum de ${maxMedia} médias (photos + vidéos) par annonce.` });
         }
 
         await Promise.all(req.files.map(async (file) => {
@@ -159,6 +176,14 @@ export const uploadAnnouncementVideos = async (req, res) => {
         }
 
         const mediaType = await MediaType.findOne({ where: { code: MEDIA_TYPE_CODES.ANNOUNCEMENT_VIDEO } });
+
+        const existingMediaCount = await countAnnouncementMedia(announcement.id);
+
+        const { max_media: maxMedia } = await getUserPlanLimits(req.user.id);
+        if (existingMediaCount + req.files.length > maxMedia) {
+            removeUploadedFiles(req.files);
+            return res.status(400).json({ status: "fail", message: `Votre plan autorise un maximum de ${maxMedia} médias (photos + vidéos) par annonce.` });
+        }
 
         const mediaItems = req.files.map((file) => ({
             media_type_id: mediaType.id,

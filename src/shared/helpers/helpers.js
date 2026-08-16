@@ -3,7 +3,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = resolve(__dirname, "../..");
+const PROJECT_ROOT = resolve(__dirname, "../../..");
 
 export function getPlural(word) {
     // 🔹 Liste des pluriels irréguliers
@@ -149,6 +149,9 @@ export function publicUrlToDiskPath(url) {
     }
     if (normalized.startsWith("uploads/")) {
         return resolve(PROJECT_ROOT, "public", normalized);
+    }
+    if (normalized.startsWith("/uploads/")) {
+        return resolve(PROJECT_ROOT, "public", normalized.replace(/^\//, ""));
     }
     if (normalized.startsWith("/")) {
         return resolve(PROJECT_ROOT, normalized.replace(/^\//, ""));
