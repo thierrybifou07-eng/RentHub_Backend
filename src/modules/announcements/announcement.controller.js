@@ -428,6 +428,30 @@ export const getPending = async (req, res) => {
     }
 };
 
+/**
+ * Admin — détail complet d'une annonce, quel que soit son statut
+ * (utile pour la modération : annonces en attente ou rejetées incluses).
+ */
+export const getByIdAdmin = async (req, res) => {
+    try {
+        const announcement = await Announcement.findByPk(req.params.id, {
+            include: [
+                ...announcementsInclude,
+                { model: User, as: "owner", attributes: ["id", "firstname", "lastname", "email", "phone"] },
+                { model: AnnouncementStatus, as: "status", attributes: ["id", "code", "label"] },
+            ],
+            attributes: { include: [favoritesCountAttr] },
+            paranoid: false,
+        });
+
+        if (!announcement) return res.status(404).json(notFound("Announcement not found"));
+
+        return res.status(200).json(success("Announcement retrieved successfully", announcement));
+    } catch (err) {
+        return handleServerError(res, err);
+    }
+};
+
 export const approve = async (req, res) => {
     try {
         const { id } = req.params;

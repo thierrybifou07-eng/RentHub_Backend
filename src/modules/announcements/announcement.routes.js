@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
     getAll,
     getById,
+    getByIdAdmin,
     getMyAnnouncements,
     create,
     update,
@@ -53,6 +54,7 @@ router.get("/me", authenticate, userHasVerifiedEmail, userIsActive, validate(myA
 
 // Admin — pending queue & moderation
 router.get("/admin/pending", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, validate(pendingAnnouncementsFilterSchema, "query"), getPending);
+router.get("/admin/:id", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, parseIdParam, getByIdAdmin);
 router.put("/admin/:id/approve", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, parseIdParam, approve);
 router.put("/admin/:id/reject", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, parseIdParam, validate(rejectAnnouncementSchema), reject);
 router.delete("/admin/:id", authenticate, userHasVerifiedEmail, userIsActive, isAdmin, parseIdParam, adminDelete);
