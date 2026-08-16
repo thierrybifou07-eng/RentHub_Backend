@@ -187,7 +187,7 @@ export const refresh = async (req, res) => {
       console.warn(`[SECURITY] IP changed for session ${session.id}: ${session.ip_address} -> ${currentIP}`);
     }
 
-    return res.status(200).json(success("Token refreshed", { token: accessToken, refreshToken: newRefreshToken }));
+    return res.status(200).json(success("Token refreshed", { token: accessToken, refreshToken: newRefreshToken, user: toSafeUser(user) }));
   } catch (err) {
     return handleServerError(res, err);
   }
@@ -269,7 +269,7 @@ export const resetPassword = async (req, res) => {
 
     if (userOtp.code !== code) return res.status(400).json(validationFail());
 
-    if (userOtp.expiredAt < new Date()) return res.status(400).json(fail("Your code expired please restart the process"));
+    if (userOtp.expiredAt < new Date()) return res.status(400).json(fail("Your code expired please restart the process", "RESET_CODE_EXPIRED"));
 
     await orm.transaction(async (t) => {
       await User.update({ password }, { where: { id: user.id }, transaction: t });
@@ -313,7 +313,7 @@ export const verifyEmail = async (req, res) => {
 
     if (userCode.code !== code) return res.status(400).json(fail("Invalid code"));
 
-    if (userCode.expiredAt < new Date()) return res.status(400).json(fail("Expired code"));
+    if (userCode.expiredAt < new Date()) return res.status(400).json(fail("Expired code", "EMAIL_CODE_EXPIRED"));
 
     const verifiedTime = new Date();
 
@@ -324,6 +324,8 @@ export const verifyEmail = async (req, res) => {
       );
       await Otp.destroy({ where: { user_id: user.id, type: OTP_TYPES.EMAIL_VERIFICATION }, transaction: t });
     });
+
+    await user.reload();
 
     const token = generateToken({ ...payload, emailVerifyAt: verifiedTime });
     let emailSent = false
@@ -337,7 +339,7 @@ export const verifyEmail = async (req, res) => {
       console.error(e.message);
     }
 
-    return res.status(200).json({ ...verified(token), emailSent });
+    return res.status(200).json({ ...verified(token), emailSent, user: toSafeUser(user) });
   } catch (err) {
     return handleServerError(res, err);
   }
