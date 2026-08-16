@@ -25,7 +25,38 @@ const handleServerError = (res, err) => {
         .json({ status: "error", message: process.env.NODE_ENV === "production" ? "Internal server error" : err.message });
 };
 
-const thirtyDaysAgo = () => new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+const thirtyDaysAgo = () => daysAgo(30);
+
+const daysAgo = (days) => new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+const EVOLUTION_GRANULARITIES = {
+    day: { fn: (column) => fn("DATE", col(column)), label: "day" },
+    week: { fn: (column) => fn("DATE_FORMAT", col(column), "%x-W%v"), label: "week" },
+    month: { fn: (column) => fn("DATE_FORMAT", col(column), "%Y-%m"), label: "month" },
+};
+
+const resolveEvolutionGranularity = (days) => {
+    if (days <= 90) return EVOLUTION_GRANULARITIES.day;
+    if (days <= 200) return EVOLUTION_GRANULARITIES.week;
+    return EVOLUTION_GRANULARITIES.month;
+};
+
+const parseEvolutionDays = (raw) => {
+    const days = parseInt(raw, 10);
+    if (!Number.isFinite(days) || days < 1 || days > 365) return 30;
+    return days;
+};
+
+const evolutionSeries = async (Model, where, dateExpr, paranoid) => {
+    return Model.findAll({
+        attributes: [[dateExpr, "date"], [fn("COUNT", col("id")), "count"]],
+        where,
+        group: [dateExpr],
+        order: [[dateExpr, "ASC"]],
+        raw: true,
+        paranoid,
+    });
+};
 
 export const getStats = async (req, res) => {
     try {
@@ -135,41 +166,21 @@ const groupedTopAnnouncements = async (related, alias, foreignKey, attrs) => {
 
 export const getEvolution = async (req, res) => {
     try {
-        const since = thirtyDaysAgo();
+        const days = parseEvolutionDays(req.query.days);
+        const granularity = resolveEvolutionGranularity(days);
+        const since = daysAgo(days);
+        const dateExpr = granularity.fn("createdAt");
 
         const [usersByDay, announcementsByDay, reportsByDay, subscriptionsByDay] = await Promise.all([
-            User.findAll({
-                attributes: [[fn("DATE", col("createdAt")), "date"], [fn("COUNT", col("id")), "count"]],
-                where: { createdAt: { [Op.gte]: since } },
-                group: [fn("DATE", col("createdAt"))],
-                order: [[fn("DATE", col("createdAt")), "ASC"]],
-                raw: true,
-            }),
-            Announcement.findAll({
-                attributes: [[fn("DATE", col("createdAt")), "date"], [fn("COUNT", col("id")), "count"]],
-                where: { createdAt: { [Op.gte]: since } },
-                group: [fn("DATE", col("createdAt"))],
-                order: [[fn("DATE", col("createdAt")), "ASC"]],
-                raw: true,
-                paranoid: false,
-            }),
-            Report.findAll({
-                attributes: [[fn("DATE", col("createdAt")), "date"], [fn("COUNT", col("id")), "count"]],
-                where: { createdAt: { [Op.gte]: since } },
-                group: [fn("DATE", col("createdAt"))],
-                order: [[fn("DATE", col("createdAt")), "ASC"]],
-                raw: true,
-            }),
-            UserSubscription.findAll({
-                attributes: [[fn("DATE", col("createdAt")), "date"], [fn("COUNT", col("id")), "count"]],
-                where: { createdAt: { [Op.gte]: since } },
-                group: [fn("DATE", col("createdAt"))],
-                order: [[fn("DATE", col("createdAt")), "ASC"]],
-                raw: true,
-            }),
+            evolutionSeries(User, { createdAt: { [Op.gte]: since } }, dateExpr),
+            evolutionSeries(Announcement, { createdAt: { [Op.gte]: since } }, dateExpr, false),
+            evolutionSeries(Report, { createdAt: { [Op.gte]: since } }, dateExpr),
+            evolutionSeries(UserSubscription, { createdAt: { [Op.gte]: since } }, dateExpr),
         ]);
 
         return res.status(200).json(success("Evolution retrieved successfully", {
+            days,
+            granularity: granularity.label,
             users: usersByDay,
             announcements: announcementsByDay,
             reports: reportsByDay,
