@@ -8,6 +8,9 @@ import {
     UserSubscription,
     Favorite,
     Message,
+    City,
+    PropertyType,
+    SubscriptionPlan,
 } from "../../database/models/index.js";
 import ANNOUNCEMENT_STATUS from "../announcements/announcementStatus.js";
 import { ROLE_IDS, ROLE_NAMES } from "../../../config/auth/app.js";
@@ -48,17 +51,86 @@ export const getStats = async (req, res) => {
             Message.count({ where: { read_at: null } }),
         ]);
 
+        const [revenueTotal, revenueLast30d, usersByRole, usersByStatus, plansDistribution, topCities, topTypes] = await Promise.all([
+            revenueSum({}),
+            revenueSum({ createdAt: { [Op.gte]: since } }),
+            groupedBy(User, Role, "role", "role_id"),
+            groupedBy(User, UserStatus, "status", "user_status_id"),
+            groupedByPlan(),
+            groupedTopAnnouncements(City, "City", "city_id", ["id", "name"]),
+            groupedTopAnnouncements(PropertyType, "PropertyType", "property_type_id", ["id", "code", "label"]),
+        ]);
+
         return res.status(200).json(success("Stats retrieved successfully", {
-            users: { total: totalUsers, owners: ownersCount, tenants: tenantsCount, newLast30d: newUsers },
-            announcements: { total: totalAnnouncements, active: activeAnnouncements, pending: pendingAnnouncements, rejected: rejectedAnnouncements, rented: rentedAnnouncements },
+            users: { total: totalUsers, owners: ownersCount, tenants: tenantsCount, newLast30d: newUsers, byRole: usersByRole, byStatus: usersByStatus },
+            announcements: { total: totalAnnouncements, active: activeAnnouncements, pending: pendingAnnouncements, rejected: rejectedAnnouncements, rented: rentedAnnouncements, topCities, topTypes },
             reports: { total: totalReports, pending: pendingReports },
-            subscriptions: { total: totalSubscriptions, pending: pendingSubscriptions, active: activeSubscriptions },
+            subscriptions: { total: totalSubscriptions, pending: pendingSubscriptions, active: activeSubscriptions, byPlan: plansDistribution },
+            revenue: { total: revenueTotal, last30d: revenueLast30d },
             favorites: { total: totalFavorites },
             messages: { total: totalMessages, unread: unreadMessages },
         }));
     } catch (err) {
         return handleServerError(res, err);
     }
+};
+
+const revenueSum = async (where) => {
+    const [result] = await UserSubscription.findAll({
+        attributes: [[fn("SUM", col("SubscriptionPlan.price")), "total"]],
+        where: { status: "ACTIVE", ...where },
+        include: [{ model: SubscriptionPlan, attributes: [] }],
+        raw: true,
+    });
+    return Number(result?.total) || 0;
+};
+
+const groupedBy = async (model, related, alias, foreignKey) => {
+    const rows = await model.findAll({
+        attributes: [foreignKey, [fn("COUNT", col(`${model.name}.id`)), "count"]],
+        include: [{ model: related, as: alias, attributes: ["id", "code", "label"] }],
+        group: [`${model.name}.${foreignKey}`, `${alias}.id`],
+        raw: true,
+    });
+    return rows.map((row) => ({
+        id: row[`${alias}.id`],
+        code: row[`${alias}.code`],
+        label: row[`${alias}.label`],
+        count: Number(row.count) || 0,
+    }));
+};
+
+const groupedByPlan = async () => {
+    const rows = await UserSubscription.findAll({
+        attributes: ["plan_id", [fn("COUNT", col("UserSubscription.id")), "count"]],
+        include: [{ model: SubscriptionPlan, attributes: ["id", "code", "label", "price"] }],
+        group: ["UserSubscription.plan_id", "SubscriptionPlan.id"],
+        raw: true,
+    });
+    return rows.map((row) => ({
+        id: row["SubscriptionPlan.id"],
+        code: row["SubscriptionPlan.code"],
+        label: row["SubscriptionPlan.label"],
+        price: Number(row["SubscriptionPlan.price"]) || 0,
+        count: Number(row.count) || 0,
+    }));
+};
+
+const groupedTopAnnouncements = async (related, alias, foreignKey, attrs) => {
+    const rows = await Announcement.findAll({
+        attributes: [foreignKey, [fn("COUNT", col("Announcement.id")), "count"]],
+        include: [{ model: related, as: alias, attributes: attrs }],
+        group: [`Announcement.${foreignKey}`, `${alias}.id`],
+        order: [[fn("COUNT", col("Announcement.id")), "DESC"]],
+        limit: 5,
+        paranoid: false,
+        raw: true,
+    });
+    return rows.map((row) => ({
+        id: row[`${alias}.id`],
+        label: row[`${alias}.label`] || row[`${alias}.name`],
+        count: Number(row.count) || 0,
+    }));
 };
 
 export const getEvolution = async (req, res) => {
