@@ -1,6 +1,7 @@
 import { Op } from "sequelize";
 import { Report, ReportStatus, Announcement, User } from "../../database/models/index.js";
 import ANNOUNCEMENT_STATUS from "../announcements/announcementStatus.js";
+import USER_STATUS from "../auth/userStatus.js";
 import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
 import { notify, notifyAdmins } from "../notifications/notification.helpers.js";
 import {
@@ -25,6 +26,7 @@ export const createReport = async (req, res) => {
 
         const announcement = await Announcement.findByPk(announcementId, {
             attributes: ["id", "user_id"],
+            include: [{ model: User, as: "owner", attributes: ["id", "user_status_id"] }],
             paranoid: false,
         });
 
@@ -32,6 +34,10 @@ export const createReport = async (req, res) => {
 
         if (announcement.user_id === req.user.id) {
             return res.status(400).json(badRequest("You cannot report your own announcement"));
+        }
+
+        if (announcement.owner?.user_status_id !== USER_STATUS.ACTIVE) {
+            return res.status(403).json(forbidden("Cannot report an announcement from an inactive owner"));
         }
 
         const since = new Date(Date.now() - 24 * 60 * 60 * 1000);

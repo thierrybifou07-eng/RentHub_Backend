@@ -4,6 +4,7 @@ import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
 import { getIO } from "../../realtime/socket.js";
 import { notify } from "../notifications/notification.helpers.js";
 import { ROLE_IDS } from "../../../config/auth/app.js";
+import USER_STATUS from "../auth/userStatus.js";
 import {
     success,
     created,
@@ -51,12 +52,17 @@ export const startConversation = async (req, res) => {
 
         const announcement = await Announcement.findByPk(announcementId, {
             attributes: ["id", "title", "user_id", "status_id"],
+            include: [{ model: User, as: "owner", attributes: ["id", "user_status_id"] }],
         });
 
         if (!announcement) return res.status(404).json(notFound("Announcement not found"));
 
         if (announcement.user_id === req.user.id) {
             return res.status(400).json(badRequest("You cannot start a conversation on your own announcement"));
+        }
+
+        if (announcement.owner?.user_status_id !== USER_STATUS.ACTIVE) {
+            return res.status(403).json(forbidden("This owner is currently unavailable"));
         }
 
         const existing = await Conversation.findOne({
@@ -140,7 +146,7 @@ export const getMyConversations = async (req, res) => {
             include: [
                 {
                     model: Announcement,
-                    attributes: ["id", "title", "price", "status_id"],
+                    attributes: ["id", "title", "price", "status_id", "user_id"],
                     include: [
                         { model: City, attributes: ["id", "name"] },
                         {
@@ -150,8 +156,8 @@ export const getMyConversations = async (req, res) => {
                         },
                     ],
                 },
-                { model: User, as: "tenant", attributes: ["id", "firstname", "lastname"], include: [avatarInclude()] },
-                { model: User, as: "owner", attributes: ["id", "firstname", "lastname"], include: [avatarInclude()] },
+                { model: User, as: "tenant", attributes: ["id", "firstname", "lastname", "user_status_id"], include: [avatarInclude()] },
+                { model: User, as: "owner", attributes: ["id", "firstname", "lastname", "user_status_id"], include: [avatarInclude()] },
             ],
             order: [["updatedAt", "DESC"]],
             limit,
@@ -159,8 +165,12 @@ export const getMyConversations = async (req, res) => {
             distinct: true,
         });
 
-        const filterRowns = rows.filter(a => a.Announcement !== null
-        )
+        const filterRowns = rows.filter(a => {
+            if (a.Announcement === null) return false;
+            // Hide conversations about inactive-owner listings from tenants
+            if (req.user.role === ROLE_IDS.TENANT && a.owner?.user_status_id !== USER_STATUS.ACTIVE) return false;
+            return true;
+        })
 
         // Unread + dernier message par conversation, pour l'utilisateur connecté
         const ids = filterRowns.map((c) => c.id);

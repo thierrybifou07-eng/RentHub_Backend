@@ -1,6 +1,7 @@
 import { Op } from "sequelize";
-import { Favorite, Announcement, Media, MediaType } from "../../database/models/index.js";
+import { Favorite, Announcement, Media, MediaType, User } from "../../database/models/index.js";
 import ANNOUNCEMENT_STATUS from "../announcements/announcementStatus.js";
+import USER_STATUS from "../auth/userStatus.js";
 import { ROLE_IDS } from "../../../config/auth/app.js";
 import {
     success,
@@ -36,13 +37,19 @@ export const addFavorite = async (req, res) => {
 
         const announcement = await Announcement.findByPk(announcementId, {
             attributes: ["id", "status_id", "user_id"],
+            include: [{ model: User, as: "owner", attributes: ["id", "user_status_id"] }],
             paranoid: false,
         });
 
         if (!announcement) return res.status(404).json(notFound("Announcement not found"));
 
-        if (req.user.role === ROLE_IDS.TENANT && announcement.status_id !== ANNOUNCEMENT_STATUS.ACTIVE) {
-            return res.status(403).json(forbidden("Tenants can only favorite active announcements"));
+        if (req.user.role === ROLE_IDS.TENANT) {
+            if (announcement.status_id !== ANNOUNCEMENT_STATUS.ACTIVE) {
+                return res.status(403).json(forbidden("Tenants can only favorite active announcements"));
+            }
+            if (announcement.owner?.user_status_id !== USER_STATUS.ACTIVE) {
+                return res.status(403).json(forbidden("Cannot favorite an announcement from an inactive owner"));
+            }
         }
 
         const existing = await Favorite.findOne({ where: { user_id: userId, announcement_id: announcementId } });
@@ -84,7 +91,10 @@ export const getMyFavorites = async (req, res) => {
             where: { user_id: req.user.id },
             include: {
                 model: Announcement,
-                include: favoritesInclude,
+                include: [
+                    ...favoritesInclude,
+                    { model: User, as: "owner", attributes: ["id", "user_status_id"] },
+                ],
                 paranoid: false,
             },
             order: [["createdAt", "DESC"]],
@@ -92,11 +102,25 @@ export const getMyFavorites = async (req, res) => {
             offset,
         });
 
-        return res.status(200).json(paginated("Favorites retrieved successfully", rows, {
+        const filtered = rows.filter((fav) => {
+            const ann = fav.Announcement;
+            if (!ann || ann.deleted_at) return false;
+            if (ann.owner && ann.owner.user_status_id !== USER_STATUS.ACTIVE) return false;
+            return true;
+        });
+
+        // Strip internal owner status from response
+        const result = filtered.map((fav) => {
+            const json = fav.toJSON();
+            if (json.Announcement?.owner) delete json.Announcement.owner;
+            return json;
+        });
+
+        return res.status(200).json(paginated("Favorites retrieved successfully", result, {
             page,
             limit,
-            total: count,
-            totalPages: Math.ceil(count / limit),
+            total: filtered.length,
+            totalPages: Math.ceil(filtered.length / limit),
         }));
     } catch (err) {
         return handleServerError(res, err);

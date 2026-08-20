@@ -2,6 +2,7 @@ import { Op, Sequelize } from "sequelize";
 import { existsSync, unlinkSync } from "node:fs";
 import { Announcement, Media, MediaType, City, PropertyType, User, AnnouncementStatus } from "../../database/models/index.js";
 import ANNOUNCEMENT_STATUS from "./announcementStatus.js";
+import USER_STATUS from "../auth/userStatus.js";
 import MEDIA_TYPE_CODES from "../media/mediaType.js";
 import { verifyToken } from "../auth/jwt.js";
 import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
@@ -100,7 +101,10 @@ export const getAll = async (req, res) => {
 
         const { count, rows } = await Announcement.findAndCountAll({
             where,
-            include: announcementsInclude,
+            include: [
+                ...announcementsInclude,
+                { model: User, as: "owner", attributes: ["id"], required: true, where: { user_status_id: USER_STATUS.ACTIVE } },
+            ],
             attributes: { include: [favoritesCountAttr] },
             order,
             limit: Number(limit),
@@ -144,7 +148,10 @@ export const getById = async (req, res) => {
 
         const announcement = await Announcement.findOne({
             where,
-            include: announcementsInclude,
+            include: [
+                ...announcementsInclude,
+                { model: User, as: "owner", attributes: ["id", "user_status_id"] },
+            ],
             attributes: { include: [favoritesCountAttr] },
             paranoid: true,
         });
@@ -160,6 +167,12 @@ export const getById = async (req, res) => {
                 return res.status(404).json(notFound("Announcement not found"));
             }
         }
+
+        // Hide announcements from non-active owners
+        if (announcement.owner?.user_status_id !== USER_STATUS.ACTIVE) {
+            return res.status(404).json(notFound("Announcement not found"));
+        }
+
         const owner = await User.scope('forAnnouncementDetails').findByPk(announcement.user_id)
         if (!owner) return res.status(404).json(notFound("Owner not found"));
 
