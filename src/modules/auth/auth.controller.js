@@ -285,7 +285,28 @@ export const resetPassword = async (req, res) => {
       console.error(e.message);
     }
 
-    return res.status(201).json(success());
+    await user.reload();
+
+    const accessToken = generateToken(buildTokenPayload(user));
+
+    const { token: refreshToken, hashedToken, expiresAt } = generateRefreshToken();
+
+    await Session.create({
+      user_id: user.id,
+      token: hashedToken,
+      expires_at: expiresAt,
+      user_agent: req.headers["user-agent"] ?? null,
+      ip_address: req.ip,
+    });
+
+    user.set({ last_login_at: new Date() });
+    await user.save();
+
+    return res.status(200).json(success("Password reset successful", {
+      token: accessToken,
+      refreshToken,
+      user: toSafeUser(user),
+    }));
   } catch (err) {
     return handleServerError(res, err);
   }
