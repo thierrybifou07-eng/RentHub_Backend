@@ -6,7 +6,7 @@ import USER_STATUS from "../auth/userStatus.js";
 export function isAdmin(req, res, next) {
     if (!req.user) return res.status(401).json(unauthorized());
 
-    if (!(req.user.role === ROLE_IDS.ADMIN || req.user.role === ROLE_IDS.ROOT)) {
+    if (req.user.role !== ROLE_IDS.ADMIN) {
         return res.status(403).json(forbidden());
     }
 
