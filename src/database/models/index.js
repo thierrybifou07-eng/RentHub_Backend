@@ -19,6 +19,7 @@ import Report from "./report.model.js";
 import SubscriptionPlan from "./subscription-plan.model.js";
 import UserSubscription from "./user-subscription.model.js";
 import Notification from "./notification.model.js";
+import AuditLog from "./audit-log.model.js";
 
 export {
     City,
@@ -42,6 +43,7 @@ export {
     SubscriptionPlan,
     UserSubscription,
     Notification,
+    AuditLog,
 };
 
 export default {
@@ -66,4 +68,5 @@ export default {
     SubscriptionPlan,
     UserSubscription,
     Notification,
+    AuditLog,
 };
