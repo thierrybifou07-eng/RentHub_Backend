@@ -166,7 +166,7 @@ export const changeUserRole = async (req, res) => {
   try {
     const { id: actorId } = req.user;
     const userId = Number(req.params.id);
-    const { newRoleId } = req.body;
+    const newRoleId = req.body?.newRoleId;
 
     if (actorId === userId) {
       return res.status(400).json(fail("You cannot change your own role"));
@@ -211,7 +211,7 @@ export const changeUserStatus = async (req, res) => {
   try {
     const { id: actorId } = req.user;
     const userId = Number(req.params.id);
-    const { newStatusId } = req.body;
+    const newStatusId = req.body?.newStatusId;
 
     if (actorId === userId) {
       return res.status(400).json(fail("You cannot change your own status"));

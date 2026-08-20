@@ -1,6 +1,9 @@
 export default function validate(schema, target = "body") {
     return (req, res, next) => {
-        if (target === "body" && req.params.id) req[target].id = req.params.id
+        if (target === "body") {
+            if (!req.body || typeof req.body !== "object") req.body = {}
+            if (req.params.id) req.body.id = req.params.id
+        }
         const { error, value } = schema.validate(req[target], {
             abortEarly: true,
             stripUnknown: true
