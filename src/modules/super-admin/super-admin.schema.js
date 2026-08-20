@@ -37,4 +37,5 @@ export const changeUserStatusSchema = Joi.object({
     "any.only": "newStatusId must be one of: " + Object.values(USER_STATUS).join(", "),
     "any.required": "newStatusId is required",
   }),
+  reason: Joi.string().max(500).optional().allow("", null),
 }).options({ stripUnknown: true });

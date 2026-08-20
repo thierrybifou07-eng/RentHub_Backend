@@ -13,7 +13,9 @@ import {
     SubscriptionPlan,
 } from "../../database/models/index.js";
 import ANNOUNCEMENT_STATUS from "../announcements/announcementStatus.js";
-import { ROLE_IDS, ROLE_NAMES } from "../../../config/auth/app.js";
+import { ROLE_IDS, ROLE_NAMES, AUDIT_ACTIONS, AUDIT_TARGET_TYPES } from "../../../config/auth/app.js";
+import { logAudit } from "../audit/audit.service.js";
+import { Session } from "../../database/models/index.js";
 import USER_STATUS from "../auth/userStatus.js";
 import { badRequest, fail, forbidden, notFound, paginated, success, unauthorized, updated, validationFail } from "../../shared/helpers/response.helpers.js";
 import { sendTemplateEmail } from "../../shared/helpers/sendMail.js";
@@ -329,26 +331,22 @@ export const manageUserRole = async (req, res) => {
 }
 
 export const manageUserStatus = async (req, res) => {
-
-    /**
-     * This function is used to find the id of or the role value
-     * 
-     * @param {Object} obj The object of our roles
-     * @param {string} value The value that we have to find the key
-     * @returns 
-     */
     try {
         const { id } = req.user
-        const { userId, currentStatus, newStatus } = req.body
+        const { currentStatus, newStatus } = req.body
         const userIdParam = Number(req.params.userId)
 
         const currentStatusId = USER_STATUS[currentStatus]
-
         const newStatusId = USER_STATUS[newStatus]
+        const reason = req.body?.reason || null
 
         const userToUpdate = await User.findByPk(userIdParam)
 
         if (!userToUpdate) return res.status(404).json(notFound())
+
+        if (userToUpdate.role_id === ROLE_IDS.ROOT) {
+            return res.status(403).json(forbidden("Cannot modify a ROOT user"))
+        }
 
         if (id === userIdParam) return res.status(401).json({ ...forbidden(), error: "You can't change yourself" })
 
@@ -361,11 +359,39 @@ export const manageUserStatus = async (req, res) => {
         userToUpdate.set({ user_status_id: newStatusId })
         await userToUpdate.save()
 
+        if (newStatusId === USER_STATUS.SUSPENDED || newStatusId === USER_STATUS.INACTIVE) {
+            await Session.destroy({ where: { user_id: userIdParam } })
+
+            try {
+                const template = "accountSuspended"
+                const subject = newStatusId === USER_STATUS.SUSPENDED
+                    ? "Votre compte a été suspendu"
+                    : "Votre compte a été désactivé"
+                await sendTemplateEmail(userToUpdate.email, subject, template, {
+                    username: `${userToUpdate.lastname} ${userToUpdate.firstname}`,
+                    reason: reason || "Non spécifié",
+                    supportEmail: "support@renthub.com",
+                })
+            } catch (e) {
+                console.error("[admin] Failed to send status email:", e.message)
+            }
+        }
+
+        await logAudit({
+            actor: req.user,
+            action: AUDIT_ACTIONS.STATUS_CHANGE,
+            targetType: AUDIT_TARGET_TYPES.USER,
+            targetId: userIdParam,
+            oldValues: { user_status_id: currentStatusId },
+            newValues: { user_status_id: newStatusId },
+            req,
+            metadata: reason ? { reason } : null,
+        })
+
         res.status(200).json(updated('Resource updated successfully', { userToUpdate }))
     } catch (error) {
         return handleServerError(res, error);
     }
-
 }
 
 export const verifyUserAccount = async (req, res) => {
@@ -407,7 +433,7 @@ export const getUsers = async (req, res) => {
         const { page, limit, search, role_id, user_status_id } = req.query;
         const offset = (page - 1) * limit;
 
-        const where = {};
+        const where = { role_id: { [Op.ne]: ROLE_IDS.ROOT } };
 
         if (search) {
             where[Op.or] = [
@@ -417,7 +443,9 @@ export const getUsers = async (req, res) => {
             ];
         }
 
-        if (role_id) where.role_id = role_id;
+        if (role_id) {
+            where.role_id = Number(role_id) === ROLE_IDS.ROOT ? { [Op.ne]: ROLE_IDS.ROOT } : role_id;
+        }
         if (user_status_id) where.user_status_id = user_status_id;
 
         const { count, rows } = await User.findAndCountAll({

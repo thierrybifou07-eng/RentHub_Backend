@@ -38,11 +38,8 @@ export const updateUserStatusSchema = Joi.object({
     currentStatus: Joi.string().valid(...statusValues).required().messages({
         "any.only": 'The currentStatus must be one of these choices: ' + statusValues.join(', '),
         "any.required": "currentStatus is required",
-    })/* ,
-    userId: Joi.number().integer().required().messages({
-        "number.base": "userId is required",
-        "any.required": "userId is required",
-    }), */
+    }),
+    reason: Joi.string().max(500).optional().allow("", null),
 }).options({ stripUnknown: true });
 
 // ===== Tâche 1 — Manage announcement status =====

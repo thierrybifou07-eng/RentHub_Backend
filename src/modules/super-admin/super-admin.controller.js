@@ -116,7 +116,7 @@ export const getUsersAllRoles = async (req, res) => {
     const { page, limit, search, role_id, user_status_id } = req.query;
     const offset = (page - 1) * limit;
 
-    const where = {};
+    const where = { role_id: { [Op.ne]: ROLE_IDS.ROOT } };
     if (search) {
       where[Op.or] = [
         { firstname: { [Op.like]: `%${search}%` } },
@@ -124,7 +124,9 @@ export const getUsersAllRoles = async (req, res) => {
         { email: { [Op.like]: `%${search}%` } },
       ];
     }
-    if (role_id) where.role_id = role_id;
+    if (role_id) {
+      where.role_id = Number(role_id) === ROLE_IDS.ROOT ? { [Op.ne]: ROLE_IDS.ROOT } : role_id;
+    }
     if (user_status_id) where.user_status_id = user_status_id;
 
     const { count, rows } = await User.findAndCountAll({
@@ -164,19 +166,18 @@ export const getUserDetail = async (req, res) => {
 
 export const changeUserRole = async (req, res) => {
   try {
-    const { id: actorId } = req.user;
     const userId = Number(req.params.id);
     const newRoleId = req.body?.newRoleId;
-
-    if (actorId === userId) {
-      return res.status(400).json(fail("You cannot change your own role"));
-    }
 
     const userToUpdate = await User.findByPk(userId);
     if (!userToUpdate) return res.status(404).json(notFound("User not found"));
 
-    if ([ROLE_IDS.ROOT].includes(userToUpdate.role_id)) {
-      return res.status(403).json(forbidden("Cannot change the role of a ROOT user"));
+    if (userToUpdate.role_id === ROLE_IDS.ROOT) {
+      return res.status(403).json(forbidden("Cannot modify a ROOT user"));
+    }
+
+    if (req.user.id === userId) {
+      return res.status(400).json(fail("You cannot change your own role"));
     }
 
     if (![ROLE_IDS.TENANT, ROLE_IDS.OWNER, ROLE_IDS.ADMIN, ROLE_IDS.AGENCY].includes(newRoleId)) {
@@ -209,19 +210,19 @@ export const changeUserRole = async (req, res) => {
 
 export const changeUserStatus = async (req, res) => {
   try {
-    const { id: actorId } = req.user;
     const userId = Number(req.params.id);
     const newStatusId = req.body?.newStatusId;
-
-    if (actorId === userId) {
-      return res.status(400).json(fail("You cannot change your own status"));
-    }
+    const reason = req.body?.reason || null;
 
     const userToUpdate = await User.findByPk(userId);
     if (!userToUpdate) return res.status(404).json(notFound("User not found"));
 
     if (userToUpdate.role_id === ROLE_IDS.ROOT) {
-      return res.status(403).json(forbidden("Cannot change the status of a ROOT user"));
+      return res.status(403).json(forbidden("Cannot modify a ROOT user"));
+    }
+
+    if (req.user.id === userId) {
+      return res.status(400).json(fail("You cannot change your own status"));
     }
 
     if (userToUpdate.user_status_id === newStatusId) {
@@ -232,6 +233,27 @@ export const changeUserStatus = async (req, res) => {
     userToUpdate.user_status_id = newStatusId;
     await userToUpdate.save();
 
+    if (newStatusId === USER_STATUS.SUSPENDED || newStatusId === USER_STATUS.INACTIVE) {
+      await Session.destroy({ where: { user_id: userId } });
+
+      try {
+        const template = newStatusId === USER_STATUS.SUSPENDED ? "accountSuspended" : "accountSuspended";
+        const subject = newStatusId === USER_STATUS.SUSPENDED
+          ? "Votre compte a été suspendu"
+          : "Votre compte a été désactivé";
+        const heading = newStatusId === USER_STATUS.SUSPENDED
+          ? "Compte suspendu"
+          : "Compte désactivé";
+        await sendTemplateEmail(userToUpdate.email, subject, template, {
+          username: `${userToUpdate.lastname} ${userToUpdate.firstname}`,
+          reason: reason || "Non spécifié",
+          supportEmail: "support@renthub.com",
+        });
+      } catch (e) {
+        console.error("[super-admin] Failed to send status email:", e.message);
+      }
+    }
+
     await logAudit({
       actor: req.user,
       action: AUDIT_ACTIONS.STATUS_CHANGE,
@@ -240,6 +262,7 @@ export const changeUserStatus = async (req, res) => {
       oldValues: { user_status_id: oldStatusId },
       newValues: { user_status_id: newStatusId },
       req,
+      metadata: reason ? { reason } : null,
     });
 
     return res.status(200).json(updated("User status updated successfully"));
