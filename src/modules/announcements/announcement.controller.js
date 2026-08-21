@@ -330,6 +330,20 @@ export const adminDelete = async (req, res) => {
 
         if (!announcement) return res.status(404).json(notFound("Announcement not found"));
 
+        try {
+            const owner = await User.findByPk(announcement.user_id, { attributes: ["email", "lastname", "firstname"] });
+            if (owner) {
+                await sendTemplateEmail(owner.email, "Annonce supprimée", "announcementDeleted", {
+                    username: `${owner.lastname} ${owner.firstname}`,
+                    announcementTitle: announcement.title,
+                    reason: req.body.reason || "Supprimée par l'équipe d'administration.",
+                    heading: "Annonce supprimée",
+                });
+            }
+        } catch (e) {
+            console.error(e.message);
+        }
+
         await Announcement.destroy({ where: { id: announcement.id }, force: true });
 
         return res.status(200).json(deleted("Announcement deleted successfully"));
@@ -389,7 +403,7 @@ export const resubmitAnnouncement = async (req, res) => {
         }
 
         await Announcement.update(
-            { status_id: ANNOUNCEMENT_STATUS.PENDING_REVIEW },
+            { status_id: ANNOUNCEMENT_STATUS.PENDING_REVIEW, submission_count: announcement.submission_count + 1 },
             { where: { id: announcement.id } }
         );
 
@@ -397,6 +411,21 @@ export const resubmitAnnouncement = async (req, res) => {
             include: announcementsInclude,
             paranoid: false,
         });
+
+        if (announcement.submission_count >= 2) {
+            try {
+                const owner = await User.findByPk(announcement.user_id, { attributes: ["email", "lastname", "firstname"] });
+                if (owner) {
+                    await sendTemplateEmail(owner.email, "Avertissement - Soumission répétée", "announcementResubmitWarning", {
+                        username: `${owner.lastname} ${owner.firstname}`,
+                        announcementTitle: announcement.title,
+                        heading: "Avertissement important",
+                    });
+                }
+            } catch (e) {
+                console.error(e.message);
+            }
+        }
 
         return res.status(200).json(updated("Announcement resubmitted successfully", result));
     } catch (err) {
@@ -535,6 +564,14 @@ export const reject = async (req, res) => {
                     reason: req.body.reason || "Votre annonce ne respecte pas nos conditions générales d'utilisation.",
                     heading: "Annonce non retenue",
                 });
+
+                if (announcement.submission_count >= 2) {
+                    await sendTemplateEmail(owner.email, "Avertissement - Annonce rejetée", "announcementWarning", {
+                        username: `${owner.lastname} ${owner.firstname}`,
+                        announcementTitle: announcement.title,
+                        heading: "Avertissement important",
+                    });
+                }
             }
         } catch (e) {
             console.error(e.message);

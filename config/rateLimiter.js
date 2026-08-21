@@ -23,3 +23,27 @@ export const registerLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+export const profileUpdateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: { status: "fail", message: "Trop de modifications de profil, veuillez réessayer plus tard" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+export const passwordChangeLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 3,
+  message: { status: "fail", message: "Trop de changements de mot de passe, veuillez réessayer plus tard" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+export const avatarLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: { status: "fail", message: "Trop de modifications d'avatar, veuillez réessayer plus tard" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});

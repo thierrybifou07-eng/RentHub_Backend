@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import "../config/env.js";
 import apiRouter from "./routes.js";
 import { corsOptions } from "../config/corsOptions.js";
-import { loginLimiter, forgotPasswordLimiter, registerLimiter } from "../config/rateLimiter.js";
+import { loginLimiter, forgotPasswordLimiter, registerLimiter, profileUpdateLimiter, passwordChangeLimiter, avatarLimiter } from "../config/rateLimiter.js";
 import { handleWebhook } from "./modules/subscriptions/stripe.webhook.js";
 import { initSocket } from "./realtime/socket.js";
 import "./database/setupAssociations.js";
@@ -33,6 +33,9 @@ app.use(express.json());
 app.use("/api/v1/auth/login", loginLimiter);
 app.use("/api/v1/auth/forgot-password", forgotPasswordLimiter);
 app.use("/api/v1/auth/register", registerLimiter);
+app.use("/api/v1/auth/me", profileUpdateLimiter);
+app.use("/api/v1/auth/me/password", passwordChangeLimiter);
+app.use("/api/v1/media/avatar", avatarLimiter);
 
 
 app.use("/api/v1", apiRouter);

@@ -55,6 +55,11 @@ const Announcement = orm.define("Announcement", {
         type: DataTypes.BIGINT.UNSIGNED,
         allowNull: false,
     },
+    submission_count: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        allowNull: false,
+        defaultValue: 1,
+    },
 }, {
     tableName: "announcements",
     paranoid: true,
