@@ -40,6 +40,18 @@ const IMAGES_DEST_DIR = resolve("public", "uploads", "ANNOUNCEMENT_IMAGE");
 const UPLOADS_PATH = "public/uploads/ANNOUNCEMENT_IMAGE";
 const SEED_PASSWORD = "User@12345";
 
+/* Scale down factor: divide large seed counts by this value */
+const SCALE_DIVISOR = 100;
+
+/* Derived smaller counts */
+const RANDOM_USERS = Math.max(1, Math.floor(495 / SCALE_DIVISOR));
+const ANNOUNCEMENTS_COUNT = Math.max(1, Math.floor(5000 / SCALE_DIVISOR));
+const CONVERSATIONS_TARGET = Math.max(1, Math.floor(500 / SCALE_DIVISOR));
+const FAVORITES_TARGET = Math.max(1, Math.floor(3000 / SCALE_DIVISOR));
+const REPORTS_COUNT = Math.max(1, Math.floor(200 / SCALE_DIVISOR));
+const NOTIFICATIONS_COUNT = Math.max(1, Math.floor(1000 / SCALE_DIVISOR));
+const AUDIT_COUNT = Math.max(1, Math.floor(500 / SCALE_DIVISOR));
+
 const ADJECTIFS = [
   "Moderne", "Chaleureux", "Spacieux", "Lumineux", "Cosy", "Renove",
   "Fonctionnel", "Agreable", "Elegant", "Calme", "Pratique", "Raffine",
@@ -135,7 +147,7 @@ async function cleanup() {
    PHASE 2 — Users (~505)
    ═══════════════════════════════════════════════════════════════════ */
 async function generateUsers() {
-  console.log("[2/9] Generating ~505 users...");
+  console.log("[2/9] Generating users (scaled down)...");
   const cities = await City.findAll();
   const cityIds = cities.map(c => c.id);
   const stActive = (await UserStatus.findOne({ where: { code: "ACTIVE" } })).id;
@@ -184,8 +196,8 @@ async function generateUsers() {
     });
   }
 
-  /* 495 random users */
-  for (let i = 0; i < 495; i++) {
+  /* 495 random users (scaled) */
+  for (let i = 0; i < RANDOM_USERS; i++) {
     const g = faker.person.sexType();
     const createdAt = randomDate(yearAgo, now);
     users.push({
@@ -227,7 +239,7 @@ async function generateUsers() {
    PHASE 3 — Announcements (5000)
    ═══════════════════════════════════════════════════════════════════ */
 async function generateAnnouncements(allUsers) {
-  console.log("[3/9] Generating 5000 announcements...");
+  console.log(`[3/9] Generating ${ANNOUNCEMENTS_COUNT} announcements...`);
   const cities = await City.findAll();
   const cityMap = {};
   const cIds = [];
@@ -254,7 +266,7 @@ async function generateAnnouncements(allUsers) {
   }
 
   const rows = [];
-  for (let i = 0; i < 5000; i++) {
+  for (let i = 0; i < ANNOUNCEMENTS_COUNT; i++) {
     const ptId = pick(ptIds);
     const cId = pick(cIds);
     const rooms = randInt(1, 6);
@@ -279,7 +291,7 @@ async function generateAnnouncements(allUsers) {
   }
 
   for (const batch of chunk(rows, 1000)) await Announcement.bulkCreate(batch);
-  console.log("      5000 announcements created.");
+  console.log(`      ${rows.length} announcements created.`);
 
   return rows;
 }
@@ -311,7 +323,7 @@ async function generateMedia(imageFiles) {
   }
 
   for (const batch of chunk(items, 2000)) await Media.bulkCreate(batch);
-  console.log(`      ${items.length} media items created.`);
+  console.log(`      ${items.length} media items created (scaled announcements).`);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -335,7 +347,7 @@ async function generateConversations(allUsers) {
   const usedPairs = new Set();
   const convs = [];
   const msgs = [];
-  const target = Math.min(500, activeAnns.length * tenantIds.length);
+  const target = Math.min(CONVERSATIONS_TARGET, activeAnns.length * tenantIds.length);
 
   while (convs.length < target && usedPairs.size < tenantIds.length * activeAnns.length) {
     const ann = pick(activeAnns);
@@ -365,7 +377,7 @@ async function generateConversations(allUsers) {
   }
 
   const createdConvs = await Conversation.bulkCreate(convs, { returning: true });
-  console.log(`      ${createdConvs.length} conversations created.`);
+  console.log(`      ${createdConvs.length} conversations created (scaled).`);
 
   console.log("[6/9] Generating messages...");
   const msgRows = [];
@@ -403,7 +415,7 @@ async function generateFavorites(allUsers) {
   const favs = [];
   const usedPairs = new Set();
 
-  while (favs.length < 3000 && usedPairs.size < tenants.length * activeAnns.length) {
+  while (favs.length < FAVORITES_TARGET && usedPairs.size < tenants.length * activeAnns.length) {
     const tid = pick(tenants).id;
     const aid = pick(activeAnns).id;
     const key = `${tid}-${aid}`;
@@ -414,7 +426,7 @@ async function generateFavorites(allUsers) {
   }
 
   for (const batch of chunk(favs, 2000)) await Favorite.bulkCreate(batch);
-  console.log(`      ${favs.length} favorites created.`);
+  console.log(`      ${favs.length} favorites created (scaled).`);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -431,7 +443,7 @@ async function generateReports(allUsers) {
   const admins = allUsers.filter(u => u.role_id === ROLE_IDS.ADMIN || u.role_id === ROLE_IDS.ROOT);
   const reports = [];
 
-  for (let i = 0; i < 200; i++) {
+  for (let i = 0; i < REPORTS_COUNT; i++) {
     const statusRoll = Math.random() * 100;
     let statusId = 1;
     if (statusRoll > 60) statusId = 2;
@@ -451,7 +463,7 @@ async function generateReports(allUsers) {
   }
 
   for (const batch of chunk(reports, 500)) await Report.bulkCreate(batch);
-  console.log(`      ${reports.length} reports created.`);
+  console.log(`      ${reports.length} reports created (scaled).`);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -473,7 +485,7 @@ async function generateNotifications(allUsers) {
   ];
 
   const notifRows = [];
-  for (let i = 0; i < 1000; i++) {
+  for (let i = 0; i < NOTIFICATIONS_COUNT; i++) {
     const t = pick(types);
     const ca = randomDate(sixMonthsAgo, now);
     const isRead = Math.random() < 0.7;
@@ -488,7 +500,7 @@ async function generateNotifications(allUsers) {
     });
   }
   for (const batch of chunk(notifRows, 2000)) await Notification.bulkCreate(batch);
-  console.log(`      ${notifRows.length} notifications created.`);
+  console.log(`      ${notifRows.length} notifications created (scaled).`);
 
   /* ── Audit Logs ── */
   const actions = [
@@ -499,7 +511,7 @@ async function generateNotifications(allUsers) {
   const targets = [AUDIT_TARGET_TYPES.USER, AUDIT_TARGET_TYPES.ANNOUNCEMENT, AUDIT_TARGET_TYPES.SUBSCRIPTION, AUDIT_TARGET_TYPES.REPORT];
 
   const auditRows = [];
-  for (let i = 0; i < 500; i++) {
+  for (let i = 0; i < AUDIT_COUNT; i++) {
     const actor = pick(allUsers);
     const action = pick(actions);
     const ca = randomDate(sixMonthsAgo, now);
@@ -521,7 +533,7 @@ async function generateNotifications(allUsers) {
     });
   }
   for (const batch of chunk(auditRows, 500)) await AuditLog.bulkCreate(batch);
-  console.log(`      ${auditRows.length} audit logs created.`);
+  console.log(`      ${auditRows.length} audit logs created (scaled).`);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
