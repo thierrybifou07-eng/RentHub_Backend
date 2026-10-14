@@ -2,12 +2,30 @@
 import { merge } from 'openapi-merge';
 import {authOpenApi} from "../../src/modules/auth/auth.openapi.js";
 import {adminOpenApi} from "../../src/modules/admin/admin.openapi.js";
+import {catalogOpenApi} from "../../src/modules/catalog/catalog.openapi.js";
+import {favoriteOpenApi} from "../../src/modules/favorites/favorite.openapi.js";
+import {messagingOpenApi} from "../../src/modules/messaging/messaging.openapi.js";
+import {reportOpenApi} from "../../src/modules/reports/report.openapi.js";
+import {subscriptionOpenApi} from "../../src/modules/subscriptions/subscription.openapi.js";
+import {notificationOpenApi} from "../../src/modules/notifications/notification.openapi.js";
+import {mediaOpenApi} from "../../src/modules/media/media.openapi.js";
+import {announcementOpenApi} from "../../src/modules/announcements/announcement.openapi.js";
+import {superAdminOpenApi} from "../../src/modules/super-admin/super-admin.openapi.js";
 
 export function generateOpenApiDocument() {
     // 1. Liste de tous vos modules documentés
     const modulesDocs = [
         { oas: authOpenApi },
         { oas: adminOpenApi },
+        { oas: catalogOpenApi },
+        { oas: favoriteOpenApi },
+        { oas: messagingOpenApi },
+        { oas: reportOpenApi },
+        { oas: subscriptionOpenApi },
+        { oas: notificationOpenApi },
+        { oas: mediaOpenApi },
+        { oas: announcementOpenApi },
+        { oas: superAdminOpenApi },
     ];
 
     // 2. Fusionner tous les fichiers de manière sécurisée
