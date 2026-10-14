@@ -20,6 +20,7 @@
     "generate_secret:prod": "node config/auth/generate_secret.js prod"
   },
   "dependencies": {
+    "@scalar/express-api-reference": "^0.10.29",
     "bcrypt": "^6.0.0",
     "compression": "^1.8.1",
     "cors": "^2.8.6",
@@ -28,12 +29,14 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.1",
     "joi": "^18.2.3",
+    "joi-to-json-schema": "^5.1.0",
     "jsonwebtoken": "^9.0.3",
     "juice": "^12.1.1",
     "multer": "^2.2.0",
     "mysql2": "^3.22.5",
     "nodemailer": "^9.0.3",
     "nodemon": "^1.14.10",
+    "openapi-merge": "^2.0.2",
     "sequelize": "^6.37.8",
     "sharp": "^0.35.3",
     "socket.io": "^4.8.3",
