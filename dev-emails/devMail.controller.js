@@ -4,8 +4,7 @@ const MAILDEV_API_URL = process.env.MAILDEV_API_URL
 
 export const getMyEmails = async (req, res) => {
     try {
-        console.log('The req.user/////////////////////////////////////////////////////////',req.user);
-        
+
         const userEmail = req.user?.email;
         if (!userEmail) {
             return res.status(401).json(unauthorized())

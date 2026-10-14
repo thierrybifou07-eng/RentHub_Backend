@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken"
-import { ROLES, ROLE_NAMES } from "../../../config/auth/app.js"
+import {ROLE_NAMES, ROLES} from "../../../config/auth/app.js"
 
 const secret = process.env.JWT_SECRET
 

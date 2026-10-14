@@ -1,5 +1,5 @@
-import { forbidden, unauthorized } from "../../shared/helpers/response.helpers.js"
-import { verifyToken } from "./jwt.js"
+import {forbidden, unauthorized} from "../../shared/helpers/response.helpers.js"
+import {verifyToken} from "./jwt.js"
 import USER_STATUS from "./userStatus.js"
 
 function getRequestToken(req) {
@@ -20,10 +20,12 @@ export async function authenticate(req, res, next) {
     if (!token) return res.status(401).json(unauthorized())
 
     try {
+        console.log('here is the Token:', token);
         req.user = verifyToken(token)
+        console.log('here is the req.user after verify Token:', req.user);
+
         next()
-    }
-    catch (e) {
+    } catch (e) {
         return res.status(401).json(unauthorized("invalid token"))
     }
 }
@@ -33,9 +35,9 @@ export async function userHasVerifiedEmail(req, res, next) {
     try {
         if (req.user.emailVerifyAt === null) {
             return res.status(401).json(unauthorized("Verify your email first"))
-        } next()
-    }
-    catch (e) {
+        }
+        next()
+    } catch (e) {
         return res.status(401).json(unauthorized("Verify your email first"))
     }
 }
@@ -44,9 +46,9 @@ export async function userIsActive(req, res, next) {
     try {
         if (req.user.userStatus !== USER_STATUS.ACTIVE) {
             return res.status(401).json(forbidden("Your account is not active"))
-        } next()
-    }
-    catch (e) {
+        }
+        next()
+    } catch (e) {
         return res.status(401).json(unauthorized("Verify your email first"))
     }
 }

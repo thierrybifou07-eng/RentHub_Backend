@@ -1,4 +1,5 @@
 import { Otp } from "../../database/models/index.js";
+import { randomInt } from "node:crypto";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -54,7 +55,7 @@ export function getPlural(word) {
 export function generate(length) {
     let code = ""
     for (let i = 0; i < length; i++) {
-        code += Math.floor(Math.random() * 10) // Génère un chiffre entre 0 et 9
+        code += randomInt(0, 10) // Génère un chiffre entre 0 et 9 (source cryptographiquement sûre)
     }
     return code
 }

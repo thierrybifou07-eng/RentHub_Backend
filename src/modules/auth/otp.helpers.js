@@ -1,3 +1,5 @@
+import { randomInt } from "node:crypto";
+
 // Rejette les codes trop prévisibles :
 // - tous les chiffres identiques (ex: 000000, 111111)
 // - suite ascendante ou descendante (ex: 123456, 654321)
@@ -20,7 +22,7 @@ const isWeakCode = (code) => {
 const generate = (length) => {
   let code;
   do {
-    const num = Math.floor(Math.random() * 10 ** length);
+    const num = randomInt(0, 10 ** length);
     code = num.toString().padStart(length, "0");
   } while (isWeakCode(code));
 

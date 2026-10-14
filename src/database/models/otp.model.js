@@ -22,6 +22,11 @@ export const Otp = orm.define(
       type: DataTypes.DATE,
       allowNull: false,
     },
+    attempts: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      defaultValue: 0,
+    },
   },
   {
     tableName: "otps",

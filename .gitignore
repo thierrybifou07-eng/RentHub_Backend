@@ -4,3 +4,4 @@ package-lock.json
 public/uploads/
 src/shared/middlewares/validate.js
 src/shared/middlewares/validate.js
+.env.local

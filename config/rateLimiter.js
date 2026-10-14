@@ -24,6 +24,14 @@ export const registerLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+export const otpVerifyLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { status: "fail", message: "Too many verification attempts, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export const profileUpdateLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 5,
