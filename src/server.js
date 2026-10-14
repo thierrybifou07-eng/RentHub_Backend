@@ -13,6 +13,8 @@ import "./database/setupAssociations.js";
 import errorHandler from "./shared/middlewares/errorHandler.js";
 import { notFound } from "./shared/helpers/response.helpers.js";
 import MediaRouter from "./modules/media/media.router.js";
+import {generateOpenApiDocument} from "../config/openapi/openapi.config.js";
+import {apiReference} from "@scalar/express-api-reference";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -31,7 +33,20 @@ app.use(express.json());
 
 app.use("/api/v1", apiRouter);
 
-// 404 — route not found
+// Générer la spec globale une seule fois au démarrage
+const globalOpenApiSpec = generateOpenApiDocument();
+
+// Exposer l'interface de documentation propre et moderne
+app.use(
+    "/reference",
+    apiReference({
+        spec: {
+            content: globalOpenApiSpec,
+        },
+    }),
+);
+
+// 404 — route not found (must be after all other routes)
 app.use((req, res) => {
     return res.status(404).json(notFound(`Cannot ${req.method} ${req.originalUrl}`));
 });
@@ -41,9 +56,9 @@ app.use(errorHandler);
 
 const httpServer = createServer(app);
 initSocket(httpServer);
-
 const port = process.env.PORT;
 httpServer.listen(port, process.env.HOST, () => {
     console.log(`Le serveur est ouvert sur le port http://localhost:${port}`);
+    console.log(`📄 UI de documentation accessible sur http://localhost:${port}/reference`);
 });
 
