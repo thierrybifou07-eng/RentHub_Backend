@@ -40,7 +40,7 @@ export const adminOpenApi = {
     openapi: '3.1.0',
     info: { title: 'Module Administration', version: '1.0.0' },
     paths: {
-        '/users': {
+        '/api/v1/users': {
             get: {
                 tags: ['Administration'],
                 summary: 'Liste des utilisateurs (admin uniquement)',
@@ -119,7 +119,7 @@ export const adminOpenApi = {
                 }
             }
         },
-        '/users/{id}': {
+        '/api/v1/users/{id}': {
             get: {
                 tags: ['Administration'],
                 summary: 'Obtenir un utilisateur par ID (admin uniquement)',

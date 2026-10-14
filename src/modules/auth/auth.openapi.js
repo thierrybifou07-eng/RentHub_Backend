@@ -25,7 +25,7 @@ export const authOpenApi = {
     openapi: '3.1.0',
     info: { title: 'Module Authentification', version: '1.0.0' },
     paths: {
-        '/auth/login': {
+        '/api/v1/auth/login': {
             post: {
                 tags: ['Authentification'],
                 summary: 'Connexion utilisateur',
@@ -60,7 +60,7 @@ export const authOpenApi = {
                 }
             }
         },
-        '/auth/verify-email': {
+        '/api/v1/auth/verify-email': {
             get: {
                 tags: ['Authentification'],
                 summary: 'Vérifier l\'adresse email',
@@ -79,7 +79,6 @@ export const authOpenApi = {
                         content: {
                             'application/json': {
                                 schema: {
-                                    type: "object",
                                     properties: {
                                         status: { type: "string", example: "success" },
                                         message: { type: "string", example: "Email verified successfully" },
@@ -93,7 +92,7 @@ export const authOpenApi = {
                 }
             }
         },
-        '/auth/reset-password': {
+        '/api/v1/auth/reset-password': {
             post: {
                 tags: ['Authentification'],
                 summary: 'Réinitialiser le mot de passe',
@@ -123,7 +122,6 @@ export const authOpenApi = {
                                         message: { type: "string", example: "Password has been reset" },
                                         data: { type: "object" }
                                     },
-                                    type: "object"
                                 }
                             }
                         }
