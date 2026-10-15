@@ -1,220 +1,203 @@
 // src/modules/notifications/notification.openapi.js
+import { makeErrorResponse, makeSuccessResponse } from "../../../config/openapi/openapi.helpers.js";
+
+const NotificationSchema = {
+    type: "object",
+    properties: {
+        id: { type: "integer", example: 1 },
+        title: { type: "string", example: "Nouvelle annonce approuvée" },
+        message: { type: "string", example: "Votre annonce 'Appartement Paris 11' a été approuvée." },
+        type: { type: "string", example: "announcement_approved" },
+        isRead: { type: "boolean", example: false },
+        metadata: { type: "object", nullable: true, example: { announcementId: 42 } },
+        createdAt: { type: "string", format: "date-time" }
+    }
+};
+
+// --- Configuration OpenAPI du module Notifications ---
 export const notificationOpenApi = {
-    openapi: '3.1.0',
-    info: { title: 'Module Notifications', version: '1.0.0' },
+    openapi: "3.1.0",
+    info: { title: "Module Notifications", version: "1.0.0" },
     paths: {
-        '/api/v1/notifications': {
+        // ── GET /notifications ──────────────────────────────────────────
+        "/api/v1/notifications": {
             get: {
-                tags: ['Notifications'],
-                summary: 'Obtenir les notifications de l\'utilisateur',
-                security: [
-                    { auth: [] }
-                ],
+                tags: ["Notifications"],
+                summary: "Lister les notifications de l'utilisateur connecté",
+                security: [{ bearerAuth: [] }],
                 parameters: [
                     {
-                        name: 'page',
-                        in: 'query',
+                        name: "page",
+                        in: "query",
                         required: false,
-                        schema: { type: 'integer', minimum: 1, default: 1 },
-                        description: 'Numéro de page'
+                        schema: { type: "integer", minimum: 1, default: 1 },
+                        description: "Numéro de page"
                     },
                     {
-                        name: 'limit',
-                        in: 'query',
+                        name: "limit",
+                        in: "query",
                         required: false,
-                        schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
-                        description: 'Nombre de notifications par page'
+                        schema: { type: "integer", minimum: 1, maximum: 100, default: 20 },
+                        description: "Nombre de notifications par page"
                     }
                 ],
                 responses: {
                     200: {
-                        description: 'Notifications récupérées avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "User notifications retrieved successfully" },
-                                        data: {
-                                            type: "object",
-                                            properties: {
-                                                notifications: {
-                                                    type: "array",
-                                                    items: {
-                                                        type: "object",
-                                                        properties: {
-                                                            id: { type: "string", example: "notif_1" },
-                                                            title: { type: "string", example: "Nouveau message" },
-                                                            message: { type: "string", example: "Vous avez un nouveau message" },
-                                                            isRead: { type: "boolean", example: false },
-                                                            createdAt: { type: "string", format: "date-time" }
-                                                        }
-                                                    }
-                                                },
-                                                total: { type: "integer" },
-                                                page: { type: "integer" },
-                                                limit: { type: "integer" }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
+                        description: "Notifications récupérées avec succès",
+                        content: makeSuccessResponse("User notifications retrieved successfully", {
+                            type: "object",
+                            properties: {
+                                notifications: { type: "array", items: NotificationSchema },
+                                total: { type: "integer", example: 25 },
+                                page: { type: "integer", example: 1 },
+                                limit: { type: "integer", example: 20 }
                             }
-                        }
+                        })
+                    },
+                    401: {
+                        description: "Non authentifié",
+                        content: makeErrorResponse("Unauthorized")
                     }
                 }
             }
         },
-        '/api/v1/notifications/unread-count': {
+
+        // ── GET /notifications/unread-count ─────────────────────────────
+        "/api/v1/notifications/unread-count": {
             get: {
-                tags: ['Notifications'],
-                summary: 'Nombre de notifications non lues',
-                security: [
-                    { auth: [] }
-                ],
+                tags: ["Notifications"],
+                summary: "Nombre de notifications non lues",
+                security: [{ bearerAuth: [] }],
                 responses: {
                     200: {
-                        description: 'Nombre de notifications non lues récupéré avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Unread notification count retrieved successfully" },
-                                        data: { type: "integer", example: 5 }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
+                        description: "Nombre de notifications non lues récupéré",
+                        content: makeSuccessResponse("Unread notification count retrieved successfully", {
+                            type: "object",
+                            properties: {
+                                unreadCount: { type: "integer", example: 5 }
                             }
-                        }
+                        })
+                    },
+                    401: {
+                        description: "Non authentifié",
+                        content: makeErrorResponse("Unauthorized")
                     }
                 }
             }
         },
-        '/api/v1/notifications/read-all': {
+
+        // ── PATCH /notifications/read-all & DELETE /notifications/read-all
+        // Note: même chemin, méthodes différentes (PATCH = marquer lues, DELETE = supprimer toutes)
+        "/api/v1/notifications/read-all": {
             patch: {
-                tags: ['Notifications'],
-                summary: 'Marquer toutes les notifications comme lues',
-                security: [
-                    { auth: [] }
-                ],
+                tags: ["Notifications"],
+                summary: "Marquer toutes les notifications comme lues",
+                security: [{ bearerAuth: [] }],
                 responses: {
                     200: {
-                        description: 'Toutes les notifications marquées comme lues',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "All notifications marked as read" },
-                                        data: { type: "object" }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
+                        description: "Toutes les notifications marquées comme lues",
+                        content: makeSuccessResponse("All notifications marked as read", {
+                            type: "object",
+                            properties: {
+                                updatedCount: { type: "integer", example: 5 }
                             }
-                        }
+                        })
+                    },
+                    401: {
+                        description: "Non authentifié",
+                        content: makeErrorResponse("Unauthorized")
+                    }
+                }
+            },
+            delete: {
+                tags: ["Notifications"],
+                summary: "Supprimer toutes les notifications de l'utilisateur",
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    200: {
+                        description: "Toutes les notifications supprimées",
+                        content: makeSuccessResponse("All notifications deleted", {
+                            type: "object",
+                            properties: {
+                                deletedCount: { type: "integer", example: 10 }
+                            }
+                        })
+                    },
+                    401: {
+                        description: "Non authentifié",
+                        content: makeErrorResponse("Unauthorized")
                     }
                 }
             }
         },
-        '/api/v1/notifications/{id}/read': {
+
+        // ── PATCH /notifications/:id/read ───────────────────────────────
+        "/api/v1/notifications/{id}/read": {
             patch: {
-                tags: ['Notifications'],
-                summary: 'Marquer une notification comme lue',
-                security: [
-                    { auth: [] }
-                ],
+                tags: ["Notifications"],
+                summary: "Marquer une notification spécifique comme lue",
+                security: [{ bearerAuth: [] }],
                 parameters: [
                     {
-                        name: 'id',
-                        in: 'path',
+                        name: "id",
+                        in: "path",
                         required: true,
-                        schema: { type: 'string' },
-                        description: 'ID de la notification'
+                        schema: { type: "integer" },
+                        description: "ID de la notification"
                     }
                 ],
                 responses: {
                     200: {
-                        description: 'Notification marquée comme lue',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Notification marked as read" },
-                                        data: { type: "object" }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
+                        description: "Notification marquée comme lue",
+                        content: makeSuccessResponse("Notification marked as read", NotificationSchema)
+                    },
+                    401: {
+                        description: "Non authentifié",
+                        content: makeErrorResponse("Unauthorized")
+                    },
+                    403: {
+                        description: "Cette notification n'appartient pas à l'utilisateur",
+                        content: makeErrorResponse("Access forbidden")
+                    },
+                    404: {
+                        description: "Notification non trouvée",
+                        content: makeErrorResponse("Notification not found")
                     }
                 }
             }
         },
-        '/api/v1/notifications/{id}': {
+
+        // ── DELETE /notifications/:id ───────────────────────────────────
+        "/api/v1/notifications/{id}": {
             delete: {
-                tags: ['Notifications'],
-                summary: 'Supprimer une notification',
-                security: [
-                    { auth: [] }
-                ],
+                tags: ["Notifications"],
+                summary: "Supprimer une notification spécifique",
+                security: [{ bearerAuth: [] }],
                 parameters: [
                     {
-                        name: 'id',
-                        in: 'path',
+                        name: "id",
+                        in: "path",
                         required: true,
-                        schema: { type: 'string' },
-                        description: 'ID de la notification'
+                        schema: { type: "integer" },
+                        description: "ID de la notification"
                     }
                 ],
                 responses: {
                     200: {
-                        description: 'Notification supprimée avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Notification deleted successfully" },
-                                        data: { type: "object" }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        '/api/v1/notifications/read-all': {
-            delete: {
-                tags: ['Notifications'],
-                summary: 'Supprimer toutes les notifications',
-                security: [
-                    { auth: [] }
-                ],
-                responses: {
-                    200: {
-                        description: 'Toutes les notifications supprimées',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "All notifications deleted" },
-                                        data: { type: "object" }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
+                        description: "Notification supprimée avec succès",
+                        content: makeSuccessResponse("Notification deleted successfully", { type: "object", nullable: true })
+                    },
+                    401: {
+                        description: "Non authentifié",
+                        content: makeErrorResponse("Unauthorized")
+                    },
+                    403: {
+                        description: "Cette notification n'appartient pas à l'utilisateur",
+                        content: makeErrorResponse("Access forbidden")
+                    },
+                    404: {
+                        description: "Notification non trouvée",
+                        content: makeErrorResponse("Notification not found")
                     }
                 }
             }

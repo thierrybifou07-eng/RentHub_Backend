@@ -1,292 +1,192 @@
 // src/modules/media/media.openapi.js
+import { makeErrorResponse, makeSuccessResponse } from "../../../config/openapi/openapi.helpers.js";
+
+const MediaSchema = {
+    type: "object",
+    properties: {
+        id: { type: "integer", example: 55 },
+        user_id: { type: "integer", example: 1 },
+        announcement_id: { type: "integer", nullable: true },
+        media_type_id: { type: "integer", example: 1 },
+        filename: { type: "string", example: "avatar_1712345678.png" },
+        url: { type: "string", example: "/uploads/avatar/avatar_1712345678.png" },
+        size: { type: "integer", example: 184320 },
+        createdAt: { type: "string", format: "date-time" },
+    },
+};
+
+const Auth = [{ bearerAuth: [] }];
+const Forbidden = { description: "Email non vérifié ou compte inactif", content: makeErrorResponse("Forbidden") };
+const NotOwner = { description: "Vous n'êtes pas propriétaire du média", content: makeErrorResponse("Forbidden") };
+
+// --- Configuration OpenAPI du module Media ---
 export const mediaOpenApi = {
-    openapi: '3.1.0',
-    info: { title: 'Module Media', version: '1.0.0' },
+    openapi: "3.1.0",
+    info: { title: "Module Media", version: "1.0.0" },
     paths: {
-        '/api/v1/media': {
+        "/api/v1/media": {
             get: {
-                tags: ['Media'],
-                summary: 'Obtenir les médias de l\'utilisateur',
-                security: [
-                    { auth: [] }
-                ],
+                tags: ["Media"],
+                summary: "Lister mes médias",
+                security: Auth,
                 responses: {
                     200: {
-                        description: 'Médias récupérés avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "User media retrieved successfully" },
-                                        data: {
-                                            type: "array",
-                                            items: {
-                                                type: "object",
-                                                properties: {
-                                                    id: { type: "string", example: "media_1" },
-                                                    type: { type: "string", example: "image" },
-                                                    url: { type: "string", format: "uri", example: "https://example.com/media.jpg" },
-                                                    createdAt: { type: "string", format: "date-time" }
-                                                }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+                        description: "Médias récupérés",
+                        content: makeSuccessResponse("Media retrieved successfully", { type: "array", items: MediaSchema }),
+                    },
+                    403: Forbidden,
+                },
+            },
         },
-        '/api/v1/media/avatar': {
+
+        "/api/v1/media/avatar": {
             post: {
-                tags: ['Media'],
-                summary: 'Télécharger une avatar',
-                security: [
-                    { auth: [] }
-                ],
+                tags: ["Media"],
+                summary: "Téléverser mon avatar",
+                description: "Un seul fichier, champ `avatar`. Taille maximale : 5 Mo. Remplace l'avatar existant.",
+                security: Auth,
                 requestBody: {
                     required: true,
                     content: {
-                        'multipart/form-data': {
+                        "multipart/form-data": {
                             schema: {
                                 type: "object",
                                 properties: {
-                                    avatar: {
-                                        type: "string",
-                                        format: "binary",
-                                        description: "Fichier image de l'avatar"
-                                    }
+                                    avatar: { type: "string", format: "binary", description: "Image de l'avatar (max 5 Mo)." },
                                 },
-                                required: ["avatar"]
-                            }
-                        }
-                    }
+                                required: ["avatar"],
+                            },
+                        },
+                    },
                 },
                 responses: {
-                    200: {
-                        description: 'Avatar téléchargé avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Avatar uploaded successfully" },
-                                        data: {
-                                            type: "object",
-                                            properties: {
-                                                url: { type: "string", format: "uri", example: "https://example.com/avatar.jpg" }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        '/api/v1/media/avatar': {
+                    201: { description: "Avatar téléversé", content: makeSuccessResponse("Avatar uploaded successfully", MediaSchema) },
+                    400: {
+                        description: "Fichier trop volumineux ou upload échoué",
+                        content: makeErrorResponse("Fichier trop volumineux. Taille maximale : 5 Mo."),
+                    },
+                    403: Forbidden,
+                },
+            },
             delete: {
-                tags: ['Media'],
-                summary: 'Supprimer l\'avatar',
-                security: [
-                    { auth: [] }
-                ],
+                tags: ["Media"],
+                summary: "Supprimer mon avatar",
+                security: Auth,
                 responses: {
                     200: {
-                        description: 'Avatar supprimé avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Avatar deleted successfully" },
-                                        data: { type: "object" }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+                        description: "Avatar supprimé",
+                        content: makeSuccessResponse("Avatar deleted successfully", { type: "null" }),
+                    },
+                    403: Forbidden,
+                    404: { description: "Aucun avatar à supprimer", content: makeErrorResponse("No avatar found") },
+                },
+            },
         },
-        '/api/v1/media/announcements/{id}/images': {
+
+        "/api/v1/media/announcements/:id/images": {
             post: {
-                tags: ['Media'],
-                summary: 'Télécharger des images pour une annonce',
-                security: [
-                    { auth: [] }
-                ],
+                tags: ["Media"],
+                summary: "Téléverser des images pour une annonce",
+                description: "Jusqu'à 50 images, champ `images`, 10 Mo max par fichier. Le propriétaire de l'annonce est requis.",
+                security: Auth,
                 parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'ID de l\'annonce'
-                    }
+                    { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1 }, description: "ID de l'annonce" },
                 ],
                 requestBody: {
                     required: true,
                     content: {
-                        'multipart/form-data': {
+                        "multipart/form-data": {
                             schema: {
                                 type: "object",
                                 properties: {
                                     images: {
                                         type: "array",
-                                        items: {
-                                            type: "string",
-                                            format: "binary"
-                                        },
-                                        description: "Fichiers images",
-                                        maxItems: 50
-                                    }
+                                        maxItems: 50,
+                                        items: { type: "string", format: "binary" },
+                                        description: "Images (10 Mo max par fichier).",
+                                    },
                                 },
-                                required: ["images"]
-                            }
-                        }
-                    }
+                                required: ["images"],
+                            },
+                        },
+                    },
                 },
                 responses: {
-                    200: {
-                        description: 'Images téléchargées avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Images uploaded successfully" },
-                                        data: {
-                                            type: "object",
-                                            properties: {
-                                                urls: {
-                                                    type: "array",
-                                                    items: { type: "string", format: "uri" },
-                                                    example: ["https://example.com/image1.jpg"]
-                                                }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+                    201: {
+                        description: "Images téléversées",
+                        content: makeSuccessResponse("Files uploaded successfully", { type: "array", items: MediaSchema }),
+                    },
+                    400: {
+                        description: "Fichier trop volumineux ou trop de fichiers",
+                        content: makeErrorResponse("Fichier trop volumineux. Taille maximale : 10 Mo."),
+                    },
+                    403: { description: "Vous n'êtes pas propriétaire de l'annonce", content: makeErrorResponse("Forbidden") },
+                    404: { description: "Annonce introuvable", content: makeErrorResponse("Announcement not found") },
+                },
+            },
         },
-        '/api/v1/media/announcements/{id}/videos': {
+
+        "/api/v1/media/announcements/:id/videos": {
             post: {
-                tags: ['Media'],
-                summary: 'Télécharger des vidéos pour une annonce',
-                security: [
-                    { auth: [] }
-                ],
+                tags: ["Media"],
+                summary: "Téléverser des vidéos pour une annonce",
+                description: "Jusqu'à 3 vidéos, champ `videos`, 20 Mo max par fichier. Le propriétaire de l'annonce est requis.",
+                security: Auth,
                 parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'ID de l\'annonce'
-                    }
+                    { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1 }, description: "ID de l'annonce" },
                 ],
                 requestBody: {
                     required: true,
                     content: {
-                        'multipart/form-data': {
+                        "multipart/form-data": {
                             schema: {
                                 type: "object",
                                 properties: {
                                     videos: {
                                         type: "array",
-                                        items: {
-                                            type: "string",
-                                            format: "binary"
-                                        },
-                                        description: "Fichiers vidéos",
-                                        maxItems: 3
-                                    }
+                                        maxItems: 3,
+                                        items: { type: "string", format: "binary" },
+                                        description: "Vidéos (20 Mo max par fichier).",
+                                    },
                                 },
-                                required: ["videos"]
-                            }
-                        }
-                    }
+                                required: ["videos"],
+                            },
+                        },
+                    },
                 },
                 responses: {
-                    200: {
-                        description: 'Vidéos téléchargées avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Videos uploaded successfully" },
-                                        data: {
-                                            type: "object",
-                                            properties: {
-                                                urls: {
-                                                    type: "array",
-                                                    items: { type: "string", format: "uri" },
-                                                    example: ["https://example.com/video1.mp4"]
-                                                }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+                    201: {
+                        description: "Vidéos téléversées",
+                        content: makeSuccessResponse("Videos uploaded successfully", { type: "array", items: MediaSchema }),
+                    },
+                    400: {
+                        description: "Fichier trop volumineux ou trop de fichiers",
+                        content: makeErrorResponse("Fichier trop volumineux. Taille maximale : 20 Mo."),
+                    },
+                    403: { description: "Vous n'êtes pas propriétaire de l'annonce", content: makeErrorResponse("Forbidden") },
+                    404: { description: "Annonce introuvable", content: makeErrorResponse("Announcement not found") },
+                },
+            },
         },
-        '/api/v1/media/{id}': {
+
+        "/api/v1/media/:id": {
             delete: {
-                tags: ['Media'],
-                summary: 'Supprimer un média',
-                security: [
-                    { auth: [] }
-                ],
+                tags: ["Media"],
+                summary: "Supprimer un média",
+                security: Auth,
                 parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'ID du média à supprimer'
-                    }
+                    { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1 }, description: "ID du média" },
                 ],
                 responses: {
                     200: {
-                        description: 'Média supprimé avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Media deleted successfully" },
-                                        data: { type: "object" }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+                        description: "Média supprimé",
+                        content: makeSuccessResponse("Media deleted successfully", { type: "null" }),
+                    },
+                    400: { description: "ID invalide", content: makeErrorResponse("Invalid id") },
+                    403: NotOwner,
+                    404: { description: "Média introuvable", content: makeErrorResponse("Media not found") },
+                },
+            },
+        },
+    },
 };

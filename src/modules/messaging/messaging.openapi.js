@@ -1,24 +1,52 @@
 // src/modules/messaging/messaging.openapi.js
+import { makeErrorResponse, makeSuccessResponse } from "../../../config/openapi/openapi.helpers.js";
+
+const ConversationSchema = {
+    type: "object",
+    properties: {
+        id: { type: "integer", example: 1 },
+        announcementId: { type: "integer", nullable: true, example: 42 },
+        participantIds: { type: "array", items: { type: "integer" }, example: [1, 2] },
+        lastMessage: { type: "string", nullable: true, example: "Bonjour, est-ce disponible ?" },
+        lastMessageAt: { type: "string", format: "date-time", nullable: true },
+        unreadCount: { type: "integer", example: 3 },
+        createdAt: { type: "string", format: "date-time" }
+    }
+};
+
+const MessageSchema = {
+    type: "object",
+    properties: {
+        id: { type: "integer", example: 1 },
+        conversationId: { type: "integer", example: 1 },
+        senderId: { type: "integer", example: 2 },
+        senderName: { type: "string", example: "John Doe" },
+        content: { type: "string", example: "Bonjour, est-ce disponible ?" },
+        isRead: { type: "boolean", example: false },
+        createdAt: { type: "string", format: "date-time" }
+    }
+};
+
+// --- Configuration OpenAPI du module Messagerie ---
 export const messagingOpenApi = {
-    openapi: '3.1.0',
-    info: { title: 'Module Messagerie', version: '1.0.0' },
+    openapi: "3.1.0",
+    info: { title: "Module Messagerie", version: "1.0.0" },
     paths: {
-        '/api/v1/conversations': {
+        // ── POST /conversations & GET /conversations ────────────────────
+        "/api/v1/conversations": {
             post: {
-                tags: ['Messagerie'],
-                summary: 'Démarrer une nouvelle conversation',
-                security: [
-                    { auth: [] }
-                ],
+                tags: ["Messagerie"],
+                summary: "Démarrer ou récupérer une conversation existante",
+                security: [{ bearerAuth: [] }],
                 requestBody: {
                     required: true,
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: {
                                 type: "object",
                                 properties: {
-                                    recipientId: { type: "string", example: "usr_456" },
-                                    subject: { type: "string", example: "Objet du message" }
+                                    recipientId: { type: "integer", example: 2, description: "ID de l'interlocuteur" },
+                                    announcementId: { type: "integer", nullable: true, example: 42, description: "ID de l'annonce concernée (optionnel)" }
                                 },
                                 required: ["recipientId"]
                             }
@@ -27,191 +55,165 @@ export const messagingOpenApi = {
                 },
                 responses: {
                     200: {
-                        description: 'Conversation démarrée avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Conversation started successfully" },
-                                        data: {
-                                            type: "object",
-                                            properties: {
-                                                conversationId: { type: "string", example: "conv_1" }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
+                        description: "Conversation créée ou existante récupérée",
+                        content: makeSuccessResponse("Conversation started successfully", ConversationSchema)
+                    },
+                    400: {
+                        description: "Données invalides",
+                        content: makeErrorResponse("Validation error")
+                    },
+                    401: {
+                        description: "Non authentifié",
+                        content: makeErrorResponse("Unauthorized")
+                    },
+                    403: {
+                        description: "Email non vérifié ou compte inactif",
+                        content: makeErrorResponse("Account not active")
                     }
                 }
-            }
-        },
-        '/api/v1/conversations': {
+            },
             get: {
-                tags: ['Messagerie'],
-                summary: 'Obtenir les conversations de l\'utilisateur',
-                security: [
-                    { auth: [] }
-                ],
+                tags: ["Messagerie"],
+                summary: "Lister les conversations de l'utilisateur connecté",
+                security: [{ bearerAuth: [] }],
                 parameters: [
                     {
-                        name: 'page',
-                        in: 'query',
+                        name: "page",
+                        in: "query",
                         required: false,
-                        schema: { type: 'integer', minimum: 1, default: 1 },
-                        description: 'Numéro de page'
+                        schema: { type: "integer", minimum: 1, default: 1 },
+                        description: "Numéro de page"
                     },
                     {
-                        name: 'limit',
-                        in: 'query',
+                        name: "limit",
+                        in: "query",
                         required: false,
-                        schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
-                        description: 'Nombre de conversations par page'
+                        schema: { type: "integer", minimum: 1, maximum: 100, default: 20 },
+                        description: "Nombre de conversations par page"
                     }
                 ],
                 responses: {
                     200: {
-                        description: 'Conversations récupérées avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "User conversations retrieved successfully" },
-                                        data: {
-                                            type: "object",
-                                            properties: {
-                                                conversations: {
-                                                    type: "array",
-                                                    items: {
-                                                        type: "object",
-                                                        properties: {
-                                                            id: { type: "string", example: "conv_1" },
-                                                            recipientId: { type: "string", example: "usr_456" },
-                                                            recipientName: { type: "string", example: "John Doe" },
-                                                            lastMessage: { type: "string", example: "Hello!" },
-                                                            lastMessageAt: { type: "string", format: "date-time" }
-                                                        }
-                                                    }
-                                                },
-                                                total: { type: "integer" },
-                                                page: { type: "integer" },
-                                                limit: { type: "integer" }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
+                        description: "Conversations récupérées avec succès",
+                        content: makeSuccessResponse("User conversations retrieved successfully", {
+                            type: "object",
+                            properties: {
+                                conversations: { type: "array", items: ConversationSchema },
+                                total: { type: "integer", example: 10 },
+                                page: { type: "integer", example: 1 },
+                                limit: { type: "integer", example: 20 }
                             }
-                        }
+                        })
+                    },
+                    401: {
+                        description: "Non authentifié",
+                        content: makeErrorResponse("Unauthorized")
                     }
                 }
             }
         },
-        '/api/v1/conversations/unread-count': {
+
+        // ── GET /conversations/unread-count ─────────────────────────────
+        "/api/v1/conversations/unread-count": {
             get: {
-                tags: ['Messagerie'],
-                summary: 'Nombre de messages non lus',
-                security: [
-                    { auth: [] }
-                ],
+                tags: ["Messagerie"],
+                summary: "Nombre total de messages non lus",
+                security: [{ bearerAuth: [] }],
                 responses: {
                     200: {
-                        description: 'Nombre de messages non lus récupéré avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Unread count retrieved successfully" },
-                                        data: { type: "integer", example: 5 }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
+                        description: "Nombre de messages non lus récupéré",
+                        content: makeSuccessResponse("Unread count retrieved successfully", {
+                            type: "object",
+                            properties: {
+                                unreadCount: { type: "integer", example: 7 }
                             }
-                        }
+                        })
+                    },
+                    401: {
+                        description: "Non authentifié",
+                        content: makeErrorResponse("Unauthorized")
                     }
                 }
             }
         },
-        '/api/v1/conversations/{id}/messages': {
+
+        // ── GET /conversations/:id/messages & POST /conversations/:id/messages
+        "/api/v1/conversations/{id}/messages": {
             get: {
-                tags: ['Messagerie'],
-                summary: 'Obtenir les messages d\'une conversation',
-                security: [
-                    { auth: [] }
-                ],
+                tags: ["Messagerie"],
+                summary: "Lister les messages d'une conversation",
+                security: [{ bearerAuth: [] }],
                 parameters: [
                     {
-                        name: 'id',
-                        in: 'path',
+                        name: "id",
+                        in: "path",
                         required: true,
-                        schema: { type: 'string' },
-                        description: 'ID de la conversation'
+                        schema: { type: "integer" },
+                        description: "ID de la conversation"
+                    },
+                    {
+                        name: "page",
+                        in: "query",
+                        required: false,
+                        schema: { type: "integer", minimum: 1, default: 1 },
+                        description: "Numéro de page"
+                    },
+                    {
+                        name: "limit",
+                        in: "query",
+                        required: false,
+                        schema: { type: "integer", minimum: 1, maximum: 100, default: 50 },
+                        description: "Nombre de messages par page"
                     }
                 ],
                 responses: {
                     200: {
-                        description: 'Messages récupérés avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Messages retrieved successfully" },
-                                        data: {
-                                            type: "array",
-                                            items: {
-                                                type: "object",
-                                                properties: {
-                                                    id: { type: "string", example: "msg_1" },
-                                                    senderId: { type: "string", example: "usr_789" },
-                                                    senderName: { type: "string", example: "John Doe" },
-                                                    content: { type: "string", example: "Hello!" },
-                                                    createdAt: { type: "string", format: "date-time" }
-                                                }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
+                        description: "Messages récupérés avec succès",
+                        content: makeSuccessResponse("Messages retrieved successfully", {
+                            type: "object",
+                            properties: {
+                                messages: { type: "array", items: MessageSchema },
+                                total: { type: "integer", example: 30 },
+                                page: { type: "integer", example: 1 },
+                                limit: { type: "integer", example: 50 }
                             }
-                        }
+                        })
+                    },
+                    401: {
+                        description: "Non authentifié",
+                        content: makeErrorResponse("Unauthorized")
+                    },
+                    403: {
+                        description: "Accès refusé (non participant de la conversation)",
+                        content: makeErrorResponse("Access forbidden")
+                    },
+                    404: {
+                        description: "Conversation non trouvée",
+                        content: makeErrorResponse("Conversation not found")
                     }
                 }
-            }
-        },
-        '/api/v1/conversations/{id}/messages': {
+            },
             post: {
-                tags: ['Messagerie'],
-                summary: 'Envoyer un message',
-                security: [
-                    { auth: [] }
-                ],
+                tags: ["Messagerie"],
+                summary: "Envoyer un message dans une conversation",
+                security: [{ bearerAuth: [] }],
                 parameters: [
                     {
-                        name: 'id',
-                        in: 'path',
+                        name: "id",
+                        in: "path",
                         required: true,
-                        schema: { type: 'string' },
-                        description: 'ID de la conversation'
+                        schema: { type: "integer" },
+                        description: "ID de la conversation"
                     }
                 ],
                 requestBody: {
                     required: true,
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: {
                                 type: "object",
                                 properties: {
-                                    content: { type: "string", example: "Bonjour !" }
+                                    content: { type: "string", example: "Bonjour, est-ce toujours disponible ?" }
                                 },
                                 required: ["content"]
                             }
@@ -219,26 +221,25 @@ export const messagingOpenApi = {
                     }
                 },
                 responses: {
-                    200: {
-                        description: 'Message envoyé avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Message sent successfully" },
-                                        data: {
-                                            type: "object",
-                                            properties: {
-                                                messageId: { type: "string", example: "msg_2" }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
+                    201: {
+                        description: "Message envoyé avec succès",
+                        content: makeSuccessResponse("Message sent successfully", MessageSchema)
+                    },
+                    400: {
+                        description: "Contenu du message invalide",
+                        content: makeErrorResponse("Message content is required")
+                    },
+                    401: {
+                        description: "Non authentifié",
+                        content: makeErrorResponse("Unauthorized")
+                    },
+                    403: {
+                        description: "Accès refusé (non participant de la conversation)",
+                        content: makeErrorResponse("Access forbidden")
+                    },
+                    404: {
+                        description: "Conversation non trouvée",
+                        content: makeErrorResponse("Conversation not found")
                     }
                 }
             }

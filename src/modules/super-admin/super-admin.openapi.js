@@ -1,451 +1,308 @@
 // src/modules/super-admin/super-admin.openapi.js
+import { makeErrorResponse, makeSuccessResponse } from "../../../config/openapi/openapi.helpers.js";
+
+const AuditLogSchema = {
+    type: "object",
+    properties: {
+        id: { type: "integer", example: 501 },
+        actor_id: { type: "integer", nullable: true, example: 3 },
+        actor: { type: "object", nullable: true, properties: {} },
+        action: {
+            type: "string",
+            enum: ["ROLE_CHANGE", "STATUS_CHANGE", "PASSWORD_RESET", "ACCOUNT_DELETE", "ACCOUNT_VERIFY", "ANNOUNCEMENT_MODERATE", "LOGIN", "LOGOUT"],
+            example: "ROLE_CHANGE",
+        },
+        target_type: { type: "string", enum: ["USER", "ANNOUNCEMENT", "SUBSCRIPTION", "REPORT"], example: "USER" },
+        target_id: { type: "integer", nullable: true, example: 12 },
+        metadata: { type: "object", nullable: true, additionalProperties: true },
+        ip_address: { type: "string", nullable: true, example: "127.0.0.1" },
+        createdAt: { type: "string", format: "date-time" },
+    },
+};
+
+const UserSchema = {
+    type: "object",
+    properties: {
+        id: { type: "integer", example: 12 },
+        firstname: { type: "string", example: "John" },
+        lastname: { type: "string", example: "Doe" },
+        email: { type: "string", format: "email", example: "user@example.com" },
+        phone: { type: "string", nullable: true },
+        role_id: { type: "integer", example: 2, description: "1=USER, 2=ADMIN, 3=ROOT, 4=TENANT, 5=OWNER, 6=AGENCY" },
+        role: { type: "object", nullable: true, properties: {} },
+        user_status_id: { type: "integer", example: 1, description: "1=ACTIVE, 2=INACTIVE, 3=SUSPENDED, 4=PENDING_VERIFICATION" },
+        email_verified_at: { type: "string", format: "date-time", nullable: true },
+        last_login_at: { type: "string", format: "date-time", nullable: true },
+        deleted_at: { type: "string", format: "date-time", nullable: true },
+        createdAt: { type: "string", format: "date-time" },
+    },
+};
+
+const IdParam = [
+    { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1 }, description: "ID de la ressource" },
+];
+const RootOnly = [{ bearerAuth: [] }];
+const NotRoot = { description: "Accès refusé - rôle root requis", content: makeErrorResponse("Forbidden") };
+const UserNotFound = { description: "Utilisateur introuvable", content: makeErrorResponse("User not found") };
+const NotFound = { description: "Log d'audit introuvable", content: makeErrorResponse("Audit log not found") };
+
+// --- Configuration OpenAPI du module Super Admin ---
 export const superAdminOpenApi = {
-    openapi: '3.1.0',
-    info: { title: 'Module Super Admin', version: '1.0.0' },
+    openapi: "3.1.0",
+    info: { title: "Module Super Admin", version: "1.0.0" },
     paths: {
-        '/api/v1/super-admin/audit-logs': {
+        "/api/v1/super-admin/audit-logs": {
             get: {
-                tags: ['Super Admin'],
-                summary: 'Obtenir les logs d\'audit',
-                security: [
-                    { root: [] }
-                ],
+                tags: ["Super Admin"],
+                summary: "Lister les logs d'audit",
+                security: RootOnly,
                 parameters: [
+                    { name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 }, description: "Numéro de page" },
                     {
-                        name: 'page',
-                        in: 'query',
-                        required: false,
-                        schema: { type: 'integer', minimum: 1, default: 1 },
-                        description: 'Numéro de page'
+                        name: "limit",
+                        in: "query",
+                        schema: { type: "integer", minimum: 1, maximum: 100, default: 20 },
+                        description: "Éléments par page",
                     },
-                    {
-                        name: 'limit',
-                        in: 'query',
-                        required: false,
-                        schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
-                        description: 'Nombre d\'éléments par page'
-                    }
+                    { name: "actor_id", in: "query", schema: { type: "integer" }, description: "Filtrer par auteur de l'action" },
+                    { name: "action", in: "query", schema: { type: "string", maxLength: 50 }, description: "Filtrer par type d'action" },
+                    { name: "target_type", in: "query", schema: { type: "string", maxLength: 50 }, description: "Filtrer par type de cible" },
+                    { name: "date_from", in: "query", schema: { type: "string", format: "date-time" }, description: "Date de début (ISO)" },
+                    { name: "date_to", in: "query", schema: { type: "string", format: "date-time" }, description: "Date de fin (ISO)" },
                 ],
                 responses: {
                     200: {
-                        description: 'Logs d\'audit récupérés avec succès',
+                        description: "Logs d'audit récupérés",
                         content: {
-                            'application/json': {
+                            "application/json": {
                                 schema: {
                                     type: "object",
                                     properties: {
                                         status: { type: "string", example: "success" },
                                         message: { type: "string", example: "Audit logs retrieved successfully" },
-                                        data: {
+                                        data: { type: "array", items: AuditLogSchema },
+                                        pagination: {
                                             type: "object",
                                             properties: {
-                                                logs: {
-                                                    type: "array",
-                                                    items: {
-                                                        type: "object",
-                                                        properties: {
-                                                            id: { type: "string", example: "log_1" },
-                                                            action: { type: "string", example: "user_created" },
-                                                            userId: { type: "string", example: "usr_1" },
-                                                            details: { type: "string", example: "User created" },
-                                                            createdAt: { type: "string", format: "date-time" }
-                                                        }
-                                                    }
-                                                },
-                                                total: { type: "integer" },
-                                                page: { type: "integer" },
-                                                limit: { type: "integer" }
-                                            }
-                                        }
+                                                page: { type: "integer", example: 1 },
+                                                limit: { type: "integer", example: 20 },
+                                                total: { type: "integer", example: 340 },
+                                                totalPages: { type: "integer", example: 17 },
+                                            },
+                                        },
                                     },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        '/api/v1/super-admin/audit-logs/stats': {
-            get: {
-                tags: ['Super Admin'],
-                summary: 'Obtenir les statistiques des logs d\'audit',
-                security: [
-                    { root: [] }
-                ],
-                responses: {
-                    200: {
-                        description: 'Statistiques des logs récupérées avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Audit stats retrieved successfully" },
-                                        data: {
-                                            type: "object",
-                                            properties: {
-                                                totalUsers: { type: "integer", example: 100 },
-                                                totalActions: { type: "integer", example: 500 },
-                                                actionsByType: {
-                                                    type: "object",
-                                                    additionalProperties: { type: "integer" },
-                                                    example: { "user_created": 50, "user_deleted": 20 }
-                                                }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        '/api/v1/super-admin/audit-logs/{id}': {
-            get: {
-                tags: ['Super Admin'],
-                summary: 'Obtenir un log d\'audit par ID',
-                security: [
-                    { root: [] }
-                ],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'ID du log d\'audit'
-                    }
-                ],
-                responses: {
-                    200: {
-                        description: 'Log d\'audit récupéré avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Audit log retrieved successfully" },
-                                        data: {
-                                            type: "object",
-                                            properties: {
-                                                id: { type: "string", example: "log_2" },
-                                                action: { type: "string", example: "user_updated" },
-                                                userId: { type: "string", example: "usr_2" },
-                                                details: { type: "string", example: "User updated" },
-                                                createdAt: { type: "string", format: "date-time" }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        '/api/v1/super-admin/users': {
-            get: {
-                tags: ['Super Admin'],
-                summary: 'Obtenir tous les utilisateurs avec leurs rôles',
-                security: [
-                    { root: [] }
-                ],
-                parameters: [
-                    {
-                        name: 'page',
-                        in: 'query',
-                        required: false,
-                        schema: { type: 'integer', minimum: 1, default: 1 },
-                        description: 'Numéro de page'
+                                },
+                            },
+                        },
                     },
-                    {
-                        name: 'limit',
-                        in: 'query',
-                        required: false,
-                        schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
-                        description: 'Nombre d\'éléments par page'
-                    }
-                ],
-                responses: {
-                    200: {
-                        description: 'Utilisateurs récupérés avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Users with roles retrieved successfully" },
-                                        data: {
-                                            type: "object",
-                                            properties: {
-                                                users: {
-                                                    type: "array",
-                                                    items: {
-                                                        type: "object",
-                                                        properties: {
-                                                            id: { type: "string", example: "usr_3" },
-                                                            email: { type: "string", example: "user@example.com" },
-                                                            firstname: { type: "string", example: "John" },
-                                                            lastname: { type: "string", example: "Doe" },
-                                                            role: { type: "string", example: "user" },
-                                                            isActive: { type: "boolean", example: true }
-                                                        }
-                                                    }
-                                                },
-                                                total: { type: "integer" },
-                                                page: { type: "integer" },
-                                                limit: { type: "integer" }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+                    403: NotRoot,
+                },
+            },
         },
-        '/api/v1/super-admin/users/{id}': {
+
+        "/api/v1/super-admin/audit-logs/stats": {
             get: {
-                tags: ['Super Admin'],
-                summary: 'Obtenir les détails d\'un utilisateur',
-                security: [
-                    { root: [] }
-                ],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'ID de l\'utilisateur'
-                    }
-                ],
+                tags: ["Super Admin"],
+                summary: "Statistiques agrégées des logs d'audit",
+                security: RootOnly,
                 responses: {
                     200: {
-                        description: 'Utilisateur récupéré avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
+                        description: "Statistiques récupérées",
+                        content: makeSuccessResponse("Audit stats retrieved successfully", {
+                            type: "object",
+                            properties: {
+                                totalLogs: { type: "integer", example: 340 },
+                                byAction: {
                                     type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "User details retrieved successfully" },
-                                        data: {
-                                            type: "object",
-                                            properties: {
-                                                id: { type: "string", example: "usr_4" },
-                                                email: { type: "string", example: "admin@example.com" },
-                                                firstname: { type: "string", example: "Admin" },
-                                                lastname: { type: "string", example: "User" },
-                                                role: { type: "string", example: "admin" },
-                                                isActive: { type: "boolean", example: true },
-                                                createdAt: { type: "string", format: "date-time" }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        '/api/v1/super-admin/users/{id}/role': {
-            patch: {
-                tags: ['Super Admin'],
-                summary: 'Changer le rôle d\'un utilisateur',
-                security: [
-                    { root: [] }
-                ],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'ID de l\'utilisateur'
-                    }
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: {
-                                type: "object",
-                                properties: {
-                                    newRole: { type: "string", example: "admin" },
-                                    currentRole: { type: "string", example: "user" }
+                                    additionalProperties: { type: "integer" },
+                                    example: { ROLE_CHANGE: 42, STATUS_CHANGE: 17, LOGIN: 281 },
                                 },
-                                required: ["newRole", "currentRole"]
-                            }
-                        }
-                    }
-                },
-                responses: {
-                    200: {
-                        description: 'Rôle utilisateur mis à jour avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
+                                byTargetType: {
                                     type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "User role updated successfully" },
-                                        data: {
-                                            type: "object",
-                                            properties: {
-                                                id: { type: "string", example: "usr_5" },
-                                                role: { type: "string", example: "admin" }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        '/api/v1/super-admin/users/{id}/status': {
-            patch: {
-                tags: ['Super Admin'],
-                summary: 'Changer le statut d\'un utilisateur',
-                security: [
-                    { root: [] }
-                ],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'ID de l\'utilisateur'
-                    }
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: {
-                                type: "object",
-                                properties: {
-                                    newStatus: { type: "string", example: "ACTIVE" },
-                                    currentStatus: { type: "string", example: "PENDING" },
-                                    reason: { type: "string", example: "Admin review" }
+                                    additionalProperties: { type: "integer" },
+                                    example: { USER: 120, ANNOUNCEMENT: 90 },
                                 },
-                                required: ["newStatus", "currentStatus"]
-                            }
-                        }
-                    }
+                            },
+                        }),
+                    },
+                    403: NotRoot,
                 },
+            },
+        },
+
+        "/api/v1/super-admin/audit-logs/:id": {
+            get: {
+                tags: ["Super Admin"],
+                summary: "Obtenir un log d'audit par ID",
+                security: RootOnly,
+                parameters: IdParam.map((p) => ({ ...p, description: "ID du log d'audit" })),
+                responses: {
+                    200: { description: "Log récupéré", content: makeSuccessResponse("Audit log retrieved successfully", AuditLogSchema) },
+                    400: { description: "ID invalide", content: makeErrorResponse("Invalid id") },
+                    403: NotRoot,
+                    404: NotFound,
+                },
+            },
+        },
+
+        "/api/v1/super-admin/users": {
+            get: {
+                tags: ["Super Admin"],
+                summary: "Lister tous les utilisateurs (tous rôles)",
+                security: RootOnly,
+                parameters: [
+                    { name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 }, description: "Numéro de page" },
+                    {
+                        name: "limit",
+                        in: "query",
+                        schema: { type: "integer", minimum: 1, maximum: 100, default: 20 },
+                        description: "Éléments par page",
+                    },
+                    { name: "search", in: "query", schema: { type: "string", maxLength: 255 }, description: "Recherche (email, prénom, nom)" },
+                    { name: "role_id", in: "query", schema: { type: "integer" }, description: "Filtrer par ID de rôle" },
+                    { name: "user_status_id", in: "query", schema: { type: "integer" }, description: "Filtrer par ID de statut utilisateur" },
+                ],
                 responses: {
                     200: {
-                        description: 'Statut utilisateur mis à jour avec succès',
+                        description: "Utilisateurs récupérés",
                         content: {
-                            'application/json': {
+                            "application/json": {
                                 schema: {
                                     type: "object",
                                     properties: {
                                         status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "User status updated successfully" },
-                                        data: {
+                                        message: { type: "string", example: "Users retrieved successfully" },
+                                        data: { type: "array", items: UserSchema },
+                                        pagination: {
                                             type: "object",
                                             properties: {
-                                                id: { type: "string", example: "usr_6" },
-                                                status: { type: "string", example: "ACTIVE" }
-                                            }
-                                        }
+                                                page: { type: "integer", example: 1 },
+                                                limit: { type: "integer", example: 20 },
+                                                total: { type: "integer", example: 137 },
+                                                totalPages: { type: "integer", example: 7 },
+                                            },
+                                        },
                                     },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+                                },
+                            },
+                        },
+                    },
+                    403: NotRoot,
+                },
+            },
         },
-        '/api/v1/super-admin/users/{id}/password-reset': {
-            patch: {
-                tags: ['Super Admin'],
-                summary: 'Réinitialiser le mot de passe d\'un utilisateur',
-                security: [
-                    { root: [] }
-                ],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'ID de l\'utilisateur'
-                    }
-                ],
+
+        "/api/v1/super-admin/users/:id": {
+            get: {
+                tags: ["Super Admin"],
+                summary: "Obtenir le détail d'un utilisateur",
+                security: RootOnly,
+                parameters: IdParam.map((p) => ({ ...p, description: "ID de l'utilisateur" })),
                 responses: {
-                    200: {
-                        description: 'Mot de passe réinitialisé avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Password reset successfully" },
-                                        data: { type: "object" }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        '/api/v1/super-admin/users/{id}': {
+                    200: { description: "Utilisateur récupéré", content: makeSuccessResponse("User retrieved successfully", UserSchema) },
+                    400: { description: "ID invalide", content: makeErrorResponse("Invalid id") },
+                    403: NotRoot,
+                    404: UserNotFound,
+                },
+            },
             delete: {
-                tags: ['Super Admin'],
-                summary: 'Supprimer un utilisateur (soft delete)',
-                security: [
-                    { root: [] }
-                ],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'ID de l\'utilisateur'
-                    }
-                ],
+                tags: ["Super Admin"],
+                summary: "Supprimer un utilisateur (soft delete)",
+                security: RootOnly,
+                parameters: IdParam.map((p) => ({ ...p, description: "ID de l'utilisateur" })),
                 responses: {
                     200: {
-                        description: 'Utilisateur supprimé avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "User deleted successfully" },
-                                        data: { type: "object" }
+                        description: "Utilisateur supprimé",
+                        content: makeSuccessResponse("User deleted successfully", { type: "null" }),
+                    },
+                    400: { description: "ID invalide", content: makeErrorResponse("Invalid id") },
+                    403: NotRoot,
+                    404: UserNotFound,
+                },
+            },
+        },
+
+        "/api/v1/super-admin/users/:id/role": {
+            patch: {
+                tags: ["Super Admin"],
+                summary: "Changer le rôle d'un utilisateur",
+                security: RootOnly,
+                parameters: IdParam.map((p) => ({ ...p, description: "ID de l'utilisateur" })),
+                requestBody: {
+                    required: true,
+                    content: {
+                        "application/json": {
+                            schema: {
+                                type: "object",
+                                properties: {
+                                    newRoleId: {
+                                        type: "integer",
+                                        enum: [1, 2, 3, 4, 5, 6],
+                                        example: 2,
+                                        description: "1=USER, 2=ADMIN, 3=ROOT, 4=TENANT, 5=OWNER, 6=AGENCY",
                                     },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+                                },
+                                required: ["newRoleId"],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    200: { description: "Rôle modifié", content: makeSuccessResponse("User role updated successfully", UserSchema) },
+                    400: { description: "Rôle invalide ou identique", content: makeErrorResponse("Invalid role") },
+                    403: NotRoot,
+                    404: UserNotFound,
+                },
+            },
+        },
+
+        "/api/v1/super-admin/users/:id/status": {
+            patch: {
+                tags: ["Super Admin"],
+                summary: "Changer le statut d'un utilisateur",
+                security: RootOnly,
+                parameters: IdParam.map((p) => ({ ...p, description: "ID de l'utilisateur" })),
+                requestBody: {
+                    required: true,
+                    content: {
+                        "application/json": {
+                            schema: {
+                                type: "object",
+                                properties: {
+                                    newStatusId: { type: "integer", enum: [1, 2, 3, 4], example: 3, description: "1=ACTIVE, 2=INACTIVE, 3=SUSPENDED, 4=PENDING_VERIFICATION" },
+                                    reason: { type: "string", maxLength: 500, example: "Comptes compromis" },
+                                },
+                                required: ["newStatusId"],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    200: { description: "Statut modifié", content: makeSuccessResponse("User status updated successfully", UserSchema) },
+                    400: { description: "Statut invalide ou identique", content: makeErrorResponse("Invalid status") },
+                    403: NotRoot,
+                    404: UserNotFound,
+                },
+            },
+        },
+
+        "/api/v1/super-admin/users/:id/password-reset": {
+            patch: {
+                tags: ["Super Admin"],
+                summary: "Réinitialiser le mot de passe d'un utilisateur",
+                description: "Envoie un nouveau code de réinitialisation à l'utilisateur concerné.",
+                security: RootOnly,
+                parameters: IdParam.map((p) => ({ ...p, description: "ID de l'utilisateur" })),
+                responses: {
+                    200: {
+                        description: "Réinitialisation déclenchée",
+                        content: makeSuccessResponse("Password reset email sent successfully", { type: "null" }),
+                    },
+                    400: { description: "ID invalide", content: makeErrorResponse("Invalid id") },
+                    403: NotRoot,
+                    404: UserNotFound,
+                },
+            },
+        },
+    },
 };

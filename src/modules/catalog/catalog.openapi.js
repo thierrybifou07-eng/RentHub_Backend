@@ -1,75 +1,56 @@
 // src/modules/catalog/catalog.openapi.js
+import { makeErrorResponse, makeSuccessResponse } from "../../../config/openapi/openapi.helpers.js";
+
+// --- Configuration OpenAPI du module Catalogue ---
 export const catalogOpenApi = {
-    openapi: '3.1.0',
-    info: { title: 'Module Catalogue', version: '1.0.0' },
+    openapi: "3.1.0",
+    info: { title: "Module Catalogue", version: "1.0.0" },
     paths: {
-        '/api/v1/cities': {
+        "/api/v1/cities": {
             get: {
-                tags: ['Catalogue'],
-                summary: 'Liste des villes',
+                tags: ["Catalogue"],
+                summary: "Lister toutes les villes",
                 responses: {
                     200: {
-                        description: 'Liste des villes récupérée avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Cities list retrieved successfully" },
-                                        data: {
-                                            type: "array",
-                                            items: {
-                                                type: "object",
-                                                properties: {
-                                                    id: { type: "string", example: "city_1" },
-                                                    name: { type: "string", example: "Paris" },
-                                                    country: { type: "string", example: "France" }
-                                                }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+                        description: "Villes récupérées (triées par nom)",
+                        content: makeSuccessResponse("Cities retrieved successfully", {
+                            type: "array",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    id: { type: "integer", example: 1 },
+                                    name: { type: "string", example: "Paris" },
+                                },
+                            },
+                        }),
+                    },
+                    500: { description: "Erreur serveur", content: makeErrorResponse("Internal server error") },
+                },
+            },
         },
-        '/api/v1/property-types': {
+
+        "/api/v1/property-types": {
             get: {
-                tags: ['Catalogue'],
-                summary: 'Types de biens disponibles',
+                tags: ["Catalogue"],
+                summary: "Lister tous les types de biens",
                 responses: {
                     200: {
-                        description: 'Types de biens récupérés avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Property types retrieved successfully" },
-                                        data: {
-                                            type: "array",
-                                            items: {
-                                                type: "object",
-                                                properties: {
-                                                    id: { type: "string", example: "type_1" },
-                                                    name: { type: "string", example: "Apartment" },
-                                                    description: { type: "string", example: "Appartement" }
-                                                }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+                        description: "Types de biens récupérés (triés par libellé)",
+                        content: makeSuccessResponse("Property types retrieved successfully", {
+                            type: "array",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    id: { type: "integer", example: 1 },
+                                    code: { type: "string", example: "APARTMENT" },
+                                    label: { type: "string", example: "Appartement" },
+                                },
+                            },
+                        }),
+                    },
+                    500: { description: "Erreur serveur", content: makeErrorResponse("Internal server error") },
+                },
+            },
+        },
+    },
 };

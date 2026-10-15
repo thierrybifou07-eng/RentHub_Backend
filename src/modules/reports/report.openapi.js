@@ -1,367 +1,197 @@
 // src/modules/reports/report.openapi.js
+import { makeErrorResponse, makeSuccessResponse } from "../../../config/openapi/openapi.helpers.js";
+
+const ReportSchema = {
+    type: "object",
+    properties: {
+        id: { type: "integer", example: 31 },
+        reporter_id: { type: "integer", example: 1 },
+        announcement_id: { type: "integer", example: 7 },
+        announcement: { type: "object", nullable: true, properties: {} },
+        reporter: { type: "object", nullable: true, properties: {} },
+        reason: { type: "string", example: "L'annonce contient des informations trompeuses." },
+        status_id: { type: "integer", example: 1, description: "1=PENDING, 2=REVIEWED, 3=DISMISSED, 4=ACTIONED" },
+        admin_note: { type: "string", nullable: true },
+        createdAt: { type: "string", format: "date-time" },
+        updatedAt: { type: "string", format: "date-time" },
+    },
+};
+
+const AdminNoteBody = {
+    required: false,
+    content: {
+        "application/json": {
+            schema: {
+                type: "object",
+                properties: { adminNote: { type: "string", maxLength: 2000, example: "Signalement retenu." } },
+            },
+        },
+    },
+};
+
+const IdParam = [
+    { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1 }, description: "ID du signalement" },
+];
+const Auth = [{ bearerAuth: [] }];
+const AdminOnly = [{ bearerAuth: [] }];
+const NotAdmin = { description: "Accès refusé - rôle admin requis", content: makeErrorResponse("Forbidden") };
+const NotFound = { description: "Signalement introuvable", content: makeErrorResponse("Report not found") };
+
+// --- Configuration OpenAPI du module Signalements ---
 export const reportOpenApi = {
-    openapi: '3.1.0',
-    info: { title: 'Module Rapports', version: '1.0.0' },
+    openapi: "3.1.0",
+    info: { title: "Module Rapports", version: "1.0.0" },
     paths: {
-        '/api/v1/reports': {
+        "/api/v1/reports": {
             post: {
-                tags: ['Rapports'],
-                summary: 'Créer un nouveau rapport',
-                security: [
-                    { auth: [] }
-                ],
+                tags: ["Rapports"],
+                summary: "Signaler une annonce",
+                security: Auth,
                 requestBody: {
                     required: true,
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: {
                                 type: "object",
                                 properties: {
-                                    type: { type: "string", example: "spam" },
-                                    title: { type: "string", example: "Contenu spam" },
-                                    description: { type: "string", example: "Description du problème" },
-                                    referenceId: { type: "string", example: "prop_1" }
+                                    announcementId: { type: "integer", example: 7 },
+                                    reason: { type: "string", minLength: 10, maxLength: 2000, example: "Photos non conformes à la réalité." },
                                 },
-                                required: ["type", "title"]
-                            }
-                        }
-                    }
+                                required: ["announcementId", "reason"],
+                            },
+                        },
+                    },
                 },
                 responses: {
-                    200: {
-                        description: 'Rapport créé avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Report created successfully" },
-                                        data: { type: "object" }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+                    200: { description: "Signalement créé", content: makeSuccessResponse("Report created successfully", ReportSchema) },
+                    400: { description: "Raison trop courte ou données invalides", content: makeErrorResponse("Reason must be at least 10 characters") },
+                    403: { description: "Email non vérifié ou compte inactif", content: makeErrorResponse("Forbidden") },
+                    404: { description: "Annonce introuvable", content: makeErrorResponse("Announcement not found") },
+                    409: { description: "Annonce déjà signalée par cet utilisateur", content: makeErrorResponse("Already reported") },
+                },
+            },
         },
-        '/api/v1/reports/admin': {
+
+        "/api/v1/reports/admin": {
             get: {
-                tags: ['Rapports'],
-                summary: 'Lister tous les rapports (admin uniquement)',
-                security: [
-                    { auth: [] }
-                ],
+                tags: ["Rapports"],
+                summary: "Lister les signalements",
+                security: AdminOnly,
                 parameters: [
                     {
-                        name: 'page',
-                        in: 'query',
-                        required: false,
-                        schema: { type: 'integer', minimum: 1, default: 1 },
-                        description: 'Numéro de page'
+                        name: "status_id",
+                        in: "query",
+                        schema: { type: "integer", enum: [1, 2, 3, 4] },
+                        description: "1=PENDING, 2=REVIEWED, 3=DISMISSED, 4=ACTIONED",
                     },
+                    { name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 }, description: "Numéro de page" },
                     {
-                        name: 'limit',
-                        in: 'query',
-                        required: false,
-                        schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
-                        description: 'Nombre d\'éléments par page'
+                        name: "limit",
+                        in: "query",
+                        schema: { type: "integer", minimum: 1, maximum: 100, default: 20 },
+                        description: "Éléments par page",
                     },
-                    {
-                        name: 'status',
-                        in: 'query',
-                        required: false,
-                        schema: { type: "string" },
-                        description: 'Filtrer par statut'
-                    }
                 ],
                 responses: {
                     200: {
-                        description: 'Rapports récupérés avec succès',
+                        description: "Signalements récupérés",
                         content: {
-                            'application/json': {
+                            "application/json": {
                                 schema: {
                                     type: "object",
                                     properties: {
                                         status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Reports list retrieved successfully" },
-                                        data: {
+                                        message: { type: "string", example: "Reports retrieved successfully" },
+                                        data: { type: "array", items: ReportSchema },
+                                        pagination: {
                                             type: "object",
                                             properties: {
-                                                reports: {
-                                                    type: "array",
-                                                    items: {
-                                                        type: "object",
-                                                        properties: {
-                                                            id: { type: "string", example: "rep_1" },
-                                                            type: { type: "string", example: "spam" },
-                                                            title: { type: "string", example: "Contenu spam" },
-                                                            description: { type: "string", example: "Description du problème" },
-                                                            status: { type: "string", example: "pending" },
-                                                            createdAt: { type: "string", format: "date-time" }
-                                                        }
-                                                    }
-                                                },
-                                                total: { type: "integer" },
-                                                page: { type: "integer" },
-                                                limit: { type: "integer" }
-                                            }
-                                        }
+                                                page: { type: "integer", example: 1 },
+                                                limit: { type: "integer", example: 20 },
+                                                total: { type: "integer", example: 5 },
+                                                totalPages: { type: "integer", example: 1 },
+                                            },
+                                        },
                                     },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+                                },
+                            },
+                        },
+                    },
+                    403: NotAdmin,
+                },
+            },
         },
-        '/api/v1/reports/admin/{id}': {
+
+        "/api/v1/reports/admin/:id": {
             get: {
-                tags: ['Rapports'],
-                summary: 'Obtenir un rapport par ID (admin uniquement)',
-                security: [
-                    { auth: [] }
-                ],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'ID du rapport'
-                    }
-                ],
+                tags: ["Rapports"],
+                summary: "Obtenir un signalement par ID",
+                security: AdminOnly,
+                parameters: IdParam,
+                responses: {
+                    200: { description: "Signalement récupéré", content: makeSuccessResponse("Report retrieved successfully", ReportSchema) },
+                    400: { description: "ID invalide", content: makeErrorResponse("Invalid id") },
+                    403: NotAdmin,
+                    404: NotFound,
+                },
+            },
+        },
+
+        "/api/v1/reports/admin/:id/review": {
+            patch: {
+                tags: ["Rapports"],
+                summary: "Marquer un signalement comme examiné",
+                security: AdminOnly,
+                parameters: IdParam,
                 responses: {
                     200: {
-                        description: 'Rapport récupéré avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Report retrieved successfully" },
-                                        data: {
-                                            type: "object",
-                                            properties: {
-                                                id: { type: "string", example: "rep_1" },
-                                                                type: { type: "string", example: "spam" },
-                                                                title: { type: "string", example: "Contenu spam" },
-                                                                description: { type: "string", example: "Description du problème" },
-                                                                status: { type: "string", example: "pending" },
-                                                                createdAt: { type: "string", format: "date-time" }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
+                        description: "Signalement examiné",
+                        content: makeSuccessResponse("Report reviewed successfully", ReportSchema),
                     },
-                    404: {
-                        description: 'Rapport non trouvé',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "error" },
-                                        message: { type: "string", example: "Report not found" }
-                                    },
-                                    required: ["status", "message"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        '/api/v1/reports/admin/{id}/review': {
-            patch: {
-                tags: ['Rapports'],
-                summary: 'Réviser un rapport (admin uniquement)',
-                security: [
-                    { auth: [] }
-                ],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'ID du rapport'
-                    }
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: {
-                                type: "object",
-                                properties: {
-                                    adminNote: { type: "string", example: "Review note" }
-                                },
-                                required: ["adminNote"]
-                            }
-                        }
-                    }
+                    400: { description: "ID invalide ou transition impossible", content: makeErrorResponse("Invalid status transition") },
+                    403: NotAdmin,
+                    404: NotFound,
                 },
+            },
+        },
+
+        "/api/v1/reports/admin/:id/dismiss": {
+            patch: {
+                tags: ["Rapports"],
+                summary: "Classer un signalement sans suite",
+                security: AdminOnly,
+                parameters: IdParam,
+                requestBody: AdminNoteBody,
                 responses: {
                     200: {
-                        description: 'Rapport révisé avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Report reviewed successfully" },
-                                        data: {
-                                            type: "object",
-                                            properties: {
-                                                id: { type: "string", example: "rep_1" },
-                                                status: { type: "string", example: "reviewed" }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
+                        description: "Signalement rejeté (sans suite)",
+                        content: makeSuccessResponse("Report dismissed successfully", ReportSchema),
                     },
-                    400: {
-                        description: 'Données invalides',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "error" },
-                                        message: { type: "string", example: "Invalid data" }
-                                    },
-                                    required: ["status", "message"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        '/api/v1/reports/admin/{id}/dismiss': {
-            patch: {
-                tags: ['Rapports'],
-                summary: 'Ignorer un rapport (admin uniquement)',
-                security: [
-                    { auth: [] }
-                ],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'ID du rapport'
-                    }
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: {
-                                type: "object",
-                                properties: {
-                                    adminNote: { type: "string", example: "Dismiss note" }
-                                },
-                                required: ["adminNote"]
-                            }
-                        }
-                    }
+                    400: { description: "Note trop longue ou transition impossible", content: makeErrorResponse("Note cannot exceed 2000 characters") },
+                    403: NotAdmin,
+                    404: NotFound,
                 },
+            },
+        },
+
+        "/api/v1/reports/admin/:id/take-action": {
+            patch: {
+                tags: ["Rapports"],
+                summary: "Prendre une action sur l'annonce signalée",
+                description: "Applique une sanction sur l'annonce ou son auteur (archivage, suspension, suppression).",
+                security: AdminOnly,
+                parameters: IdParam,
+                requestBody: AdminNoteBody,
                 responses: {
                     200: {
-                        description: 'Rapport ignoré avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Report dismissed successfully" },
-                                        data: {
-                                            type: "object",
-                                            properties: {
-                                                id: { type: "string", example: "rep_1" },
-                                                status: { type: "string", example: "dismissed" }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        '/api/v1/reports/admin/{id}/take-action': {
-            patch: {
-                tags: ['Rapports'],
-                summary: 'Prendre une action sur un rapport (admin uniquement)',
-                security: [
-                    { auth: [] }
-                ],
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: { type: 'string' },
-                        description: 'ID du rapport'
-                    }
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: {
-                                type: "object",
-                                properties: {
-                                    action: { type: "string", example: "resolve" },
-                                    adminNote: { type: "string", example: "Action note" }
-                                },
-                                required: ["action"]
-                            }
-                        }
-                    }
+                        description: "Action effectuée",
+                        content: makeSuccessResponse("Action taken successfully", ReportSchema),
+                    },
+                    400: { description: "Note trop longue ou transition impossible", content: makeErrorResponse("Note cannot exceed 2000 characters") },
+                    403: NotAdmin,
+                    404: NotFound,
                 },
-                responses: {
-                    200: {
-                        description: 'Action effectuée avec succès',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: "object",
-                                    properties: {
-                                        status: { type: "string", example: "success" },
-                                        message: { type: "string", example: "Action performed successfully" },
-                                        data: {
-                                            type: "object",
-                                            properties: {
-                                                id: { type: "string", example: "rep_1" },
-                                                status: { type: "string", example: "actioned" }
-                                            }
-                                        }
-                                    },
-                                    required: ["status", "message", "data"]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+            },
+        },
+    },
 };
